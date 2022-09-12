@@ -1,0 +1,16 @@
+{
+  "incremental": true,
+  "indentWidth": 2,
+  "lineWidth": 80,
+  "typescript": {
+    "quoteProps": "asNeeded",
+    "arrowFunction.useParentheses": "force"
+  },
+  "includes": ["**.{json,md,toml,ts}"],
+  "excludes": ["target"],
+  "plugins": [
+    "https://plugins.dprint.dev/json-0.15.3.wasm",
+    "https://plugins.dprint.dev/markdown-0.13.3.wasm",
+    "https://plugins.dprint.dev/typescript-0.69.4.wasm"
+  ]
+}
