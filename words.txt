@@ -1,3 +1,4 @@
+paritytech
 atomf
 deno
 denoland
