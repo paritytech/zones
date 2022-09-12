@@ -6,7 +6,7 @@
     "quoteProps": "asNeeded",
     "arrowFunction.useParentheses": "force"
   },
-  "includes": ["**.{json,md,toml,ts}"],
+  "includes": ["**.{json,md,ts}"],
   "excludes": ["target"],
   "plugins": [
     "https://plugins.dprint.dev/json-0.15.3.wasm",
