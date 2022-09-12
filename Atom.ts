@@ -1,7 +1,7 @@
 import { Collection$, CollectionT, E, S, V } from "./common.ts";
 import { Effect, EffectId } from "./Effect.ts";
 import { sig } from "./Signature.ts";
-import { U2I } from "./util.ts";
+import { noop, U2I } from "./util.ts";
 
 export class Atom<
   A extends unknown[] = any[],
@@ -30,8 +30,8 @@ export class Atom<
   ) {
     super();
     const argsId = args.length ? `a(${args.map(sig.unknown)})` : "";
-    const enterId = `i${sig.ref(enter)}`;
-    const exitId = `e${sig.ref(exit)}`;
+    const enterId = `enter_${sig.ref(enter)}`;
+    const exitId = `exit_${sig.ref(exit)}`;
     this.id = `at(${argsId},${enterId},${exitId})` as EffectId;
   }
 }
@@ -47,7 +47,7 @@ export function atom<
 >(
   args: [...A],
   enter: (this: EnterV, ...args: CollectionT<A>) => EnterR,
-  exit: (this: ExitV, enterR: EnterR) => ExitR = (() => {}) as any,
+  exit: (this: ExitV, enterR: EnterR) => ExitR = noop as any,
 ): Atom<A, EnterV, EnterR, ExitV, ExitR> {
   return new Atom(args, enter, exit);
 }
@@ -60,7 +60,7 @@ export function atomf<
   ExitR extends AtomExitR = void,
 >(
   enter: (this: EnterV, ...args: X) => EnterR,
-  exit: (this: ExitV, enterR: EnterR) => ExitR = (() => {}) as any,
+  exit: (this: ExitV, enterR: EnterR) => ExitR = noop as any,
 ) {
   return <A extends Collection$<X>>(
     ...args: A
