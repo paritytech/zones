@@ -23,3 +23,5 @@ const result = run(root, {
     return a + b;
   },
 });
+
+console.log(result);

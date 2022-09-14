@@ -1,5 +1,7 @@
+import { AtomState } from "./AtomState.ts";
 import { Collection$, CollectionT, E, S, V } from "./common.ts";
 import { Effect, EffectId } from "./Effect.ts";
+import { Context } from "./Runtime.ts";
 import { sig } from "./Signature.ts";
 import { noop, U2I } from "./util.ts";
 
@@ -34,6 +36,10 @@ export class Atom<
     const exitId = `exit_${sig.ref(exit)}`;
     this.id = `at(${argsId},${enterId},${exitId})` as EffectId;
   }
+
+  state = (context: Context): AtomState => {
+    return new AtomState(context, this);
+  };
 }
 
 export type AtomExitR = void | Error | Promise<void | Error>;

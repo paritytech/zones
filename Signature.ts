@@ -22,9 +22,12 @@ class SignatureFactory<T> {
   };
 }
 
+const { signature: ref_ } = new SignatureFactory("ref", new WeakMap());
+const { signature: val_ } = new SignatureFactory("val", new Map());
+
 export namespace sig {
-  export const { signature: ref } = new SignatureFactory("ref", new WeakMap());
-  export const { signature: val } = new SignatureFactory("val", new Map());
+  export const ref = ref_;
+  export const val = val_;
 
   export function unknown(target: unknown): Signature {
     switch (typeof target) {

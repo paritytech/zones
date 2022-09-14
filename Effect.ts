@@ -1,3 +1,5 @@
+import { EffectState } from "./EffectState.ts";
+import { Context } from "./Runtime.ts";
 import { Signature } from "./Signature.ts";
 
 declare const S_: unique symbol;
@@ -20,6 +22,8 @@ export abstract class Effect<
   declare [T_]: T;
 
   abstract id: EffectId;
+
+  abstract state: (context: Context) => EffectState;
 }
 
 export type AnyEffect = Effect<boolean, any, Error, any>;
