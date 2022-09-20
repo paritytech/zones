@@ -1,5 +1,5 @@
-import { AtomState } from "./AtomState.ts";
-import { Collection$, CollectionT, E, S, V } from "./common.ts";
+import { AtomWork } from "./AtomWork.ts";
+import { Collection$, CollectionT, E, ExitResult, S, V } from "./common.ts";
 import { Effect, EffectId } from "./Effect.ts";
 import { Context } from "./Runtime.ts";
 import { sig } from "./Signature.ts";
@@ -10,7 +10,7 @@ export class Atom<
   EnterV = any,
   EnterR = any,
   ExitV = any,
-  ExitR extends AtomExitR = AtomExitR,
+  ExitR extends ExitResult = ExitResult,
 > extends Effect<
   S<A[number]> | (Promise<never> extends (EnterR | ExitR) ? false : true),
   U2I<V<A[number]>> & EnterV & ExitV,
@@ -31,25 +31,23 @@ export class Atom<
     readonly exit: (this: ExitV, enterR: EnterR) => ExitR,
   ) {
     super();
-    const argsId = args.length ? `a(${args.map(sig.unknown)})` : "";
+    const argsId = args.length ? `args(${args.map(sig.unknown)})` : "";
     const enterId = `enter_${sig.ref(enter)}`;
     const exitId = `exit_${sig.ref(exit)}`;
-    this.id = `at(${argsId},${enterId},${exitId})` as EffectId;
+    this.id = `atom(${argsId},${enterId},${exitId})` as EffectId;
   }
 
-  state = (context: Context): AtomState => {
-    return new AtomState(context, this);
+  work = (context: Context): AtomWork => {
+    return new AtomWork(context, this);
   };
 }
-
-export type AtomExitR = void | Error | Promise<void | Error>;
 
 export function atom<
   A extends unknown[],
   EnterV,
   EnterR,
   ExitV = unknown,
-  ExitR extends AtomExitR = void,
+  ExitR extends ExitResult = void,
 >(
   args: [...A],
   enter: (this: EnterV, ...args: CollectionT<A>) => EnterR,
@@ -63,7 +61,7 @@ export function atomf<
   EnterV,
   EnterR,
   ExitV = unknown,
-  ExitR extends AtomExitR = void,
+  ExitR extends ExitResult = void,
 >(
   enter: (this: EnterV, ...args: X) => EnterR,
   exit: (this: ExitV, enterR: EnterR) => ExitR = noop as any,

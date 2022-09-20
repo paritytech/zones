@@ -14,6 +14,8 @@ export const add = Z.atomf(function(this: AddEnv, a: number, b: number) {
     return new AddZeroError();
   }
   return this.add(a, b);
+}, (n) => {
+  console.log(n);
 });
 
 const root = add(1, add(2, add(3, 4)));
@@ -24,4 +26,4 @@ const result = run(root, {
   },
 });
 
-console.log(result);
+// console.log(result);
