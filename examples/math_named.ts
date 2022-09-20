@@ -19,4 +19,4 @@ const root = new Add(1, new Add(2, new Add(3, 4)));
 
 const result = run(root);
 
-// console.log(result);
+console.log(result);

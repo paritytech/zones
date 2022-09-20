@@ -22,8 +22,9 @@ export abstract class Effect<
   declare [T_]: T;
 
   abstract id: EffectId;
-
   abstract work: (context: Context) => Work;
+
+  declare dependencies?: Set<AnyEffect>;
 }
 
 export type AnyEffect = Effect<boolean, any, Error, any>;

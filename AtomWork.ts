@@ -21,12 +21,11 @@ export class AtomWork extends Work<Atom> {
       }
       const enter = this.source.enter.bind(this.context.env);
       this.enterResult = enter(...args);
-
-      state.dependencies.get(this.source.id)?.forEach((dependencyId) => {
-        const dependencyDependentIds = state.dependents.get(dependencyId);
+      this.source.dependencies?.forEach(({ id }) => {
+        const dependencyDependentIds = state.dependents.get(id);
         dependencyDependentIds?.delete(this.source.id);
         if (!dependencyDependentIds?.size) {
-          const dependency = this.context.get(dependencyId)!;
+          const dependency = this.context.get(id)!;
           if (dependency instanceof AtomWork) {
             dependency.exitResult = dependency.exit(state);
           }

@@ -26,4 +26,4 @@ const result = run(root, {
   },
 });
 
-// console.log(result);
+console.log(result);

@@ -31,10 +31,26 @@ export class Atom<
     readonly exit: (this: ExitV, enterR: EnterR) => ExitR,
   ) {
     super();
-    const argsId = args.length ? `args(${args.map(sig.unknown)})` : "";
-    const enterId = `enter_${sig.ref(enter)}`;
-    const exitId = `exit_${sig.ref(exit)}`;
-    this.id = `atom(${argsId},${enterId},${exitId})` as EffectId;
+    let id = "atom(";
+    if (args.length) {
+      id += "args(";
+      for (const arg of args) {
+        id += sig.unknown(arg) + ",";
+        if (arg instanceof Effect) {
+          if (this.dependencies) {
+            this.dependencies.add(arg);
+          } else {
+            this.dependencies = new Set([arg]);
+          }
+        }
+      }
+      id += "),";
+    }
+    id += `enter_${sig.ref(enter)}`;
+    if (this.exit !== noop as any) {
+      id += `exit_${sig.ref(exit)}`;
+    }
+    this.id = id + ")" as EffectId;
   }
 
   work = (context: Context): AtomWork => {

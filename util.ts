@@ -14,7 +14,7 @@ export const uninitialized = Symbol();
 export type uninitialized = typeof uninitialized;
 
 export class TinyGraph<T> extends Map<T, Set<T>> {
-  pointTo = (from: T, to: T) => {
+  arrow = (from: T, to: T) => {
     const arrows = this.get(from);
     if (arrows) {
       arrows.add(to);

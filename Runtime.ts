@@ -6,15 +6,13 @@ import { TinyGraph } from "./util.ts";
 import { Work } from "./Work.ts";
 
 export class State {
-  dependencies = new TinyGraph<EffectId>();
   dependents = new TinyGraph<EffectId>();
 
   relate = (
     parentId: EffectId,
     childId: EffectId,
   ) => {
-    this.dependencies.pointTo(parentId, childId);
-    this.dependents.pointTo(childId, parentId);
+    this.dependents.arrow(childId, parentId);
   };
 }
 
