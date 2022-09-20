@@ -1,6 +1,7 @@
 import { Atom } from "./Atom.ts";
 import { ExitResult, isEffectLike } from "./common.ts";
 import { State } from "./Runtime.ts";
+import { UnknownError } from "./UnknownError.ts";
 import { noop, uninitialized } from "./util.ts";
 import { Work } from "./Work.ts";
 
@@ -14,13 +15,21 @@ export class AtomWork extends Work<Atom> {
       for (const arg of this.source.args) {
         if (isEffectLike(arg)) {
           const argEnterResult = this.context.get(arg.id)!.enter(state);
+          if (argEnterResult instanceof Error) {
+            this.enterResult = argEnterResult;
+            return this.enterResult;
+          }
           args.push(argEnterResult);
         } else {
           args.push(arg);
         }
       }
       const enter = this.source.enter.bind(this.context.env);
-      this.enterResult = enter(...args);
+      try {
+        this.enterResult = enter(...args);
+      } catch (err) {
+        this.enterResult = new UnknownError(err, this.source);
+      }
       this.source.dependencies?.forEach(({ id }) => {
         const dependencyDependentIds = state.dependents.get(id);
         dependencyDependentIds?.delete(this.source.id);
@@ -31,7 +40,10 @@ export class AtomWork extends Work<Atom> {
           }
         }
       });
-      if (!state.dependents.get(this.source.id)?.size) {
+      if (
+        this.enterResult instanceof Error
+        || !state.dependents.get(this.source.id)?.size
+      ) {
         this.exitResult = this.exit(state);
       }
     }
@@ -39,6 +51,9 @@ export class AtomWork extends Work<Atom> {
   };
 
   exit = (_state: State) => {
+    if (this.enterResult === uninitialized) {
+      return;
+    }
     if (this.exitResult === uninitialized) {
       if (this.source.exit === noop) {
         this.exitResult = undefined;

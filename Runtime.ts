@@ -2,6 +2,7 @@ import { Atom } from "./Atom.ts";
 import { EffectLike, isEffectLike } from "./common.ts";
 import { EffectId } from "./Effect.ts";
 import { Name } from "./Name.ts";
+import { UnknownError } from "./UnknownError.ts";
 import { TinyGraph } from "./util.ts";
 import { Work } from "./Work.ts";
 
@@ -23,11 +24,11 @@ export class Context extends Map<EffectId, Work> {
 
   state = (root: EffectLike): State => {
     const state = new State();
-    const stack: [source: EffectLike, parentId?: EffectId][] = [[root]];
-    while (stack.length) {
-      const [source, parentId] = stack.pop()!;
+    const init: [source: EffectLike, parentId?: EffectId][] = [[root]];
+    while (init.length) {
+      const [source, parentId] = init.pop()!;
       if (source instanceof Name) {
-        stack.push([source.root, parentId]);
+        init.push([source.root, parentId]);
         continue;
       }
       let work = this.get(source.id);
@@ -38,7 +39,7 @@ export class Context extends Map<EffectId, Work> {
       if (source instanceof Atom) {
         source.args.forEach((arg) => {
           if (isEffectLike(arg)) {
-            stack.push([arg, source.id]);
+            init.push([arg, source.id]);
           }
         });
       }
@@ -60,7 +61,7 @@ export class Runtime extends WeakMap<object, Context> {
   >(
     root: EffectLike<S, V, E, T>,
     ...[env]: unknown extends V ? [] : [env: V]
-  ): ColoredResult<S, E | T> => {
+  ): ColoredResult<S, UnknownError | E | T> => {
     const key = typeof env === "function" || typeof env === "object" ? env : {};
     let context = this.get(key);
     if (!context) {

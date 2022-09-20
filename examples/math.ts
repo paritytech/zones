@@ -18,7 +18,11 @@ export const add = Z.atomf(function(this: AddEnv, a: number, b: number) {
   console.log(n);
 });
 
-const root = add(1, add(2, add(3, 4)));
+const beAnnoying = Z.atom([], () => {
+  throw 20;
+});
+
+const root = add(1, add(2, add(3, beAnnoying)));
 
 const result = run(root, {
   add(a, b) {
@@ -26,4 +30,6 @@ const result = run(root, {
   },
 });
 
-console.log(result);
+if (result instanceof Error) {
+  console.log(result.message);
+}
