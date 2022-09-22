@@ -10,16 +10,10 @@ export type U2I<T> = (T extends any ? (value: T) => any : never) extends
 
 export function noop() {}
 
-export const uninitialized = Symbol();
-export type uninitialized = typeof uninitialized;
-
-export class TinyGraph<T> extends Map<T, Set<T>> {
-  arrow = (from: T, to: T) => {
-    const arrows = this.get(from);
-    if (arrows) {
-      arrows.add(to);
-    } else {
-      this.set(from, new Set([to]));
-    }
-  };
-}
+export type ArrayOfLength<
+  T,
+  L extends number,
+  A extends T[] = [],
+> = number extends L ? T[]
+  : L extends A["length"] ? A
+  : ArrayOfLength<T, L, [...A, T]>;

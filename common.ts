@@ -23,4 +23,8 @@ export type T<U> = U extends EffectLike<boolean, any, Error, infer T> ? T : U;
 export type Collection$<C> = { [K in keyof C]: $<C[K]> };
 export type CollectionT<C> = { [K in keyof C]: T<C[K]> };
 
-export type ExitResult = void | undefined | Promise<void | undefined>;
+export type ExitResult =
+  | void
+  | undefined
+  | Error
+  | Promise<void | undefined | Error>;

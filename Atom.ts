@@ -31,7 +31,7 @@ export class Atom<
     readonly exit: (this: ExitV, enterR: EnterR) => ExitR,
   ) {
     super();
-    let id = "atom(";
+    let id = "atom("; // TODO: improved legibility?
     if (args.length) {
       id += "args(";
       for (const arg of args) {
@@ -48,7 +48,7 @@ export class Atom<
     }
     id += `enter_${sig.ref(enter)}`;
     if (this.exit !== noop as any) {
-      id += `exit_${sig.ref(exit)}`;
+      id += `,exit_${sig.ref(exit)}`;
     }
     this.id = id + ")" as EffectId;
   }

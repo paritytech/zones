@@ -3,4 +3,4 @@ export * from "./common.ts";
 export * from "./Effect.ts";
 export * from "./Name.ts";
 export * from "./Runtime.ts";
-export * from "./UnknownError.ts";
+export * from "./UnexpectedThrow.ts";

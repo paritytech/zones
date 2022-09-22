@@ -2,18 +2,22 @@ import { Atom } from "./Atom.ts";
 import { EffectLike, isEffectLike } from "./common.ts";
 import { EffectId } from "./Effect.ts";
 import { Name } from "./Name.ts";
-import { UnknownError } from "./UnknownError.ts";
-import { TinyGraph } from "./util.ts";
+import { UnexpectedThrow } from "./UnexpectedThrow.ts";
 import { Work } from "./Work.ts";
 
 export class State {
-  dependents = new TinyGraph<EffectId>();
+  dependents = new Map<EffectId, Set<EffectId>>();
 
   relate = (
-    parentId: EffectId,
-    childId: EffectId,
+    child: EffectId,
+    parent: EffectId,
   ) => {
-    this.dependents.arrow(childId, parentId);
+    const dependents = this.dependents.get(child);
+    if (dependents) {
+      dependents.add(parent);
+    } else {
+      this.dependents.set(child, new Set([parent]));
+    }
   };
 }
 
@@ -44,7 +48,7 @@ export class Context extends Map<EffectId, Work> {
         });
       }
       if (parentId) {
-        state.relate(parentId, source.id);
+        state.relate(source.id, parentId);
       }
     }
     return state;
@@ -61,7 +65,7 @@ export class Runtime extends WeakMap<object, Context> {
   >(
     root: EffectLike<S, V, E, T>,
     ...[env]: unknown extends V ? [] : [env: V]
-  ): ColoredResult<S, UnknownError | E | T> => {
+  ): ColoredResult<S, UnexpectedThrow | E | T> => {
     const key = typeof env === "function" || typeof env === "object" ? env : {};
     let context = this.get(key);
     if (!context) {
