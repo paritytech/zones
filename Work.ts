@@ -1,6 +1,6 @@
 import { ExitResult } from "./common.ts";
 import { AnyEffect } from "./Effect.ts";
-import { Context, State } from "./Runtime.ts";
+import { Context, RunState } from "./Runtime.ts";
 
 export abstract class Work<Source extends AnyEffect = AnyEffect> {
   abstract enter: Run<unknown>;
@@ -12,4 +12,4 @@ export abstract class Work<Source extends AnyEffect = AnyEffect> {
   ) {}
 }
 
-type Run<T> = (state: State) => T;
+type Run<T> = (state: RunState) => T;

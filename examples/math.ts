@@ -1,5 +1,7 @@
+import { assertEquals } from "../deps/std/testing/asserts.ts";
 import * as Z from "../mod.ts";
-import { run } from "./common.ts";
+
+const trace = Z.trace();
 
 interface AddEnv {
   add(a: number, b: number): number;
@@ -16,12 +18,14 @@ export const add = Z.atomf(function(this: AddEnv, a: number, b: number) {
   return this.add(a, b);
 });
 
-const root = add(1, add(2, add(3, 4)));
+const a = add(3, 4);
+const b = add(2, a);
+const root = add(1, b);
 
-const result = run(root, {
+const result = Z.run({ hooks: [trace] })(root, {
   add(a, b) {
     return a + b;
   },
 });
 
-// console.log(result);
+console.log(result);

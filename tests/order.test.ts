@@ -1,23 +1,21 @@
-import { assertEquals } from "../deps/std/testing/asserts.ts";
 import * as Z from "../mod.ts";
-import { VisitTracker, VisitTrackerEvent } from "./common.ts";
+import { noop } from "../util.ts";
 
-Deno.test("sync", () => {
-  const visitTracker = new VisitTracker();
-  const [t0, t1, t2] = visitTracker.handles(3);
-  const a0 = Z.atom([], t0.enter, t0.exit);
-  const a1 = Z.atom([a0], t1.enter, t1.exit);
-  const a2 = Z.atom([a1], t2.enter, t2.exit);
-  new Z.Runtime().run(a2);
-  assertEquals(
-    visitTracker.sequence,
-    VisitTrackerEvent.sequence(
-      ["enter", 0],
-      ["enter", 1],
-      ["exit", 0],
-      ["enter", 2],
-      ["exit", 1],
-      ["exit", 2],
-    ),
+Deno.test("sync2", () => {
+  const trace = Z.trace();
+  const run = Z.run({ hooks: [trace] });
+  const a0 = Z.atom([], noop, noop);
+  const a1 = Z.atom([a0], noop, noop);
+  const a2 = Z.atom([a1], noop, noop);
+  run(a2);
+  Z.assertTrace(
+    trace,
+    Z.trace()
+      .enter(a0, undefined)
+      .enter(a1, undefined)
+      .exit(a0)
+      .enter(a2, undefined)
+      .exit(a1)
+      .exit(a2),
   );
 });

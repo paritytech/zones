@@ -1,3 +1,5 @@
+import { assert } from "../deps/std/testing/asserts.ts";
+import * as Z from "../mod.ts";
 import * as U from "../util.ts";
 
 export type VisitTrackerEventKind = "enter" | "exit";
@@ -46,3 +48,14 @@ export class VisitTracker {
     return handles as any;
   };
 }
+
+export async function assertVisits<V>(
+  runtime: Z.Runtime,
+  root: Z.EffectLike<boolean, V, Error, any>,
+  env: unknown extends V ? object : V,
+  events: [
+    kind: VisitTrackerEventKind,
+    root: Z.EffectLike,
+    result?: unknown,
+  ][],
+) {}

@@ -1,3 +1,7 @@
-import { Runtime } from "../mod.ts";
+import * as Z from "../mod.ts";
 
-export const { run } = new Runtime();
+const trace = Z.trace();
+
+export const { run } = new Z.Runtime({
+  hooks: [trace],
+});

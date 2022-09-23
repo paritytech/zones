@@ -32,9 +32,9 @@ export class Atom<
   ) {
     super();
     let id = "atom("; // TODO: improved legibility?
-    if (args.length) {
+    if (this.args.length) {
       id += "args(";
-      for (const arg of args) {
+      for (const arg of this.args) {
         id += sig.unknown(arg) + ",";
         if (arg instanceof Effect) {
           if (this.dependencies) {
@@ -46,9 +46,9 @@ export class Atom<
       }
       id += "),";
     }
-    id += `enter_${sig.ref(enter)}`;
+    id += `enter_${sig.ref(this.enter)}`;
     if (this.exit !== noop as any) {
-      id += `,exit_${sig.ref(exit)}`;
+      id += `,exit_${sig.ref(this.exit)}`;
     }
     this.id = id + ")" as EffectId;
   }

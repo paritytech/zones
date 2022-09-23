@@ -1,5 +1,4 @@
 import * as Z from "../mod.ts";
-import { run } from "./common.ts";
 
 class Add<A extends Z.$<number>, B extends Z.$<number>> extends Z.Name {
   root;
@@ -17,6 +16,6 @@ class Add<A extends Z.$<number>, B extends Z.$<number>> extends Z.Name {
 
 const root = new Add(1, new Add(2, new Add(3, 4)));
 
-const result = run(root);
+const result = Z.run()(root);
 
 console.log(result);

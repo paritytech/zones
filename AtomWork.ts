@@ -1,7 +1,7 @@
 import { Atom } from "./Atom.ts";
 import { ExitResult, isEffectLike } from "./common.ts";
 import { assert } from "./deps/std/testing/asserts.ts";
-import { State } from "./Runtime.ts";
+import { RunState } from "./Runtime.ts";
 import { UnexpectedThrow } from "./UnexpectedThrow.ts";
 import { noop } from "./util.ts";
 import { Work } from "./Work.ts";
@@ -12,7 +12,7 @@ export class AtomWork extends Work<Atom> {
   declare argExitError?: ExitResult;
   declare exitResult?: ExitResult;
 
-  enter = (state: State) => {
+  enter = (state: RunState) => {
     // If initialized, return the previously-computed result
     if ("enterResult" in this) {
       return this.enterResult;
@@ -62,6 +62,10 @@ export class AtomWork extends Work<Atom> {
       this.enterResult = new UnexpectedThrow(thrown, this);
     }
 
+    this.context.props?.hooks?.forEach(({ enter }) => {
+      enter?.(this.source, this.enterResult);
+    });
+
     // Iterate over the atom's dependencies (all of which are no longer
     // needed by this atom, as we've executed `enter`)
     if (this.source.dependencies?.size) {
@@ -91,7 +95,7 @@ export class AtomWork extends Work<Atom> {
     return this.enterResult;
   };
 
-  exit = (_state: State) => {
+  exit = (_state: RunState) => {
     if (!("exitResult" in this)) {
       if (this.source.exit === noop) {
         this.exitResult = undefined;
@@ -104,6 +108,9 @@ export class AtomWork extends Work<Atom> {
           this.exitResult = new UnexpectedThrow(e, this);
         }
       }
+      this.context.props?.hooks?.forEach(({ exit }) => {
+        exit?.(this.source, this.exitResult);
+      });
     }
     return this.exitResult;
   };
