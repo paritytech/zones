@@ -1,4 +1,3 @@
-import { assertEquals } from "../deps/std/testing/asserts.ts";
 import * as Z from "../mod.ts";
 
 const trace = Z.trace();

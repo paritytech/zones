@@ -107,10 +107,10 @@ export class AtomWork extends Work<Atom> {
         } catch (e) {
           this.exitResult = new UnexpectedThrow(e, this);
         }
+        this.context.props?.hooks?.forEach(({ exit }) => {
+          exit?.(this.source, this.exitResult);
+        });
       }
-      this.context.props?.hooks?.forEach(({ exit }) => {
-        exit?.(this.source, this.exitResult);
-      });
     }
     return this.exitResult;
   };
