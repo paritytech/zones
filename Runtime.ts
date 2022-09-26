@@ -6,11 +6,11 @@ import { Name } from "./Name.ts";
 import { UnexpectedThrow } from "./UnexpectedThrow.ts";
 import { Work } from "./Work.ts";
 
-export interface RunProps {
+export interface RuntimeProps {
   hooks?: Hooks[];
 }
 
-export function run(props?: RunProps): Run {
+export function runtime(props?: RuntimeProps): Runtime {
   const contexts = new WeakMap<object, Context>();
   return <
     S extends boolean,
@@ -32,7 +32,7 @@ export function run(props?: RunProps): Run {
   };
 }
 
-export type Run = <
+export type Runtime = <
   S extends boolean,
   V,
   E extends Error,
@@ -46,7 +46,6 @@ export type ColoredResult<S extends boolean, R> = false extends S ? Promise<R>
   : R;
 
 export class RunState {
-  result: unknown;
   dependents = new Map<EffectId, Set<EffectId>>();
 
   relate = (
@@ -64,7 +63,7 @@ export class RunState {
 
 export class Context extends Map<EffectId, Work> {
   constructor(
-    readonly props: RunProps | undefined,
+    readonly props: RuntimeProps | undefined,
     readonly env: unknown,
   ) {
     super();

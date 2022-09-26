@@ -21,7 +21,7 @@ export const add = Z.atomf(function(
 
 const root = add(1, add(2, add(3, 4)));
 
-const result = Z.run()(root, {
+const result = Z.runtime()(root, {
   add(a, b) {
     return a + b;
   },

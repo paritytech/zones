@@ -81,7 +81,10 @@ export class AtomWork extends Work<Atom> {
           assert(dependency instanceof AtomWork);
           // Run its exit and capture the optional exit error
           const dependencyExit = dependency.exit(state);
-          // TODO: propagate errors
+          dependency.exitResult = dependencyExit;
+          if (dependencyExit instanceof Error) {
+            return dependencyExit;
+          }
         }
       }
     }
@@ -89,7 +92,11 @@ export class AtomWork extends Work<Atom> {
     // If we're at the effect root, we immediately exit,
     // as no other effects are reliant on the enter result.
     if (!state.dependents.get(this.source.id)) {
-      this.exitResult = this.exit(state);
+      const exitResult = this.exit(state);
+      this.exitResult = exitResult;
+      if (exitResult instanceof Error) {
+        return exitResult;
+      }
     }
 
     return this.enterResult;

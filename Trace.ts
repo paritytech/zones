@@ -10,10 +10,12 @@ export interface Trace extends Hooks {
 }
 
 export function trace(...events: TraceEventHookDesc[]): Trace {
-  const sequence = [...events];
+  let sequence = [...events];
   return {
     digest: () => {
-      return sequence;
+      const s = sequence;
+      sequence = [];
+      return s;
     },
     enter: (source, result) => {
       sequence.push(new TraceEnterEventDec(source, result));
