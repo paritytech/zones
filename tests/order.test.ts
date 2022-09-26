@@ -1,3 +1,4 @@
+import { assertEquals } from "../deps/std/testing/asserts.ts";
 import * as Z from "../mod.ts";
 import { noop } from "../util.ts";
 
@@ -10,13 +11,13 @@ Deno.test("sync2", () => {
   run(a2);
   Z.assertTrace(
     trace,
-    Z.trace()
-      .enter(a0, undefined)
-      .enter(a1, undefined)
-      .exit(a0, err1)
-      .enter(a2, undefined)
-      .exit(a1, err2)
-      .exit(a2),
+    Z.traceDesc()
+      .enter(a0, (r) => assertEquals(r, undefined))
+      .enter(a1, (r) => assertEquals(r, undefined))
+      .exit(a0, (r) => assertEquals(r, err1))
+      .enter(a2, (r) => assertEquals(r, undefined))
+      .exit(a1, (r) => assertEquals(r, err2))
+      .exit(a2, () => {}),
   );
 });
 

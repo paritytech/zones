@@ -1,7 +1,5 @@
 import * as Z from "../mod.ts";
 
-const trace = Z.trace();
-
 interface AddEnv {
   add(a: number, b: number): number;
 }
@@ -10,18 +8,20 @@ class AddZeroErr extends Error {
   override readonly name = "AddZero";
 }
 
-export const add = Z.atomf(function(this: AddEnv, a: number, b: number) {
+export const add = Z.atomf(function(
+  this: AddEnv,
+  a: number,
+  b: number,
+) {
   if (a === 0 || b === 0) {
     return new AddZeroErr();
   }
   return this.add(a, b);
 });
 
-const a = add(3, 4);
-const b = add(2, a);
-const root = add(1, b);
+const root = add(1, add(2, add(3, 4)));
 
-const result = Z.run({ hooks: [trace] })(root, {
+const result = Z.run()(root, {
   add(a, b) {
     return a + b;
   },

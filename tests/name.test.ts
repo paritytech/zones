@@ -1,3 +1,4 @@
+import { assertEquals } from "../deps/std/testing/asserts.ts";
 import * as Z from "../mod.ts";
 
 Deno.test("name", () => {
@@ -26,8 +27,8 @@ Deno.test("name", () => {
   run(b);
   Z.assertTrace(
     trace,
-    Z.trace()
-      .enter(a.root, "A")
-      .enter(b.root, "A"),
+    Z.traceDesc()
+      .enter(a.root, (result) => assertEquals(result, "A"))
+      .enter(b.root, (result) => assertEquals(result, "A")),
   );
 });

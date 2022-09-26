@@ -3,70 +3,92 @@ import { assert } from "./deps/std/testing/asserts.ts";
 import { AnyEffect } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
 
-type TraceEvent =
-  & { source: AnyEffect }
-  & ({
-    kind: "enter";
-    enterResult?: unknown;
-  } | {
-    kind: "exit";
-    exitResult?: ExitResult;
-  });
+export type TraceEventHookDesc = TraceEventDesc<unknown, ExitResult>;
 
-export interface Trace extends Required<Hooks<Trace>> {
-  sequence: TraceEvent[];
-  clear(): void;
+export interface Trace extends Hooks {
+  digest: () => TraceEventHookDesc[];
 }
-export function trace(...events: TraceEvent[]): Trace {
-  let sequence = [...events];
-  const setSequence = (s: TraceEvent[]) => {
-    sequence = s;
-    t.sequence = s;
-  };
-  const t: Trace = {
-    sequence,
-    enter: (source, enterResult) => {
-      sequence.push({
-        kind: "enter",
-        source,
-        enterResult,
-      });
-      return t;
+
+export function trace(...events: TraceEventHookDesc[]): Trace {
+  const sequence = [...events];
+  return {
+    digest: () => {
+      return sequence;
     },
-    exit: (source, exitResult) => {
-      sequence.push({
-        kind: "exit",
-        source,
-        exitResult,
-      });
-      return t;
+    enter: (source, result) => {
+      sequence.push(new TraceEnterEventDec(source, result));
     },
-    clear: () => {
-      setSequence([]);
+    exit: (source, result) => {
+      sequence.push(new TraceExitEventDesc(source, result));
     },
   };
-  return t;
+}
+
+export function traceDesc(...initial: TraceAssertions[]) {
+  return new TraceDescBuilder(initial);
+}
+
+export type TraceAssertions = TraceEventDesc<
+  (useResult?: unknown) => void,
+  (useResult?: ExitResult) => void
+>;
+
+export class TraceDescBuilder {
+  constructor(readonly assertions: TraceAssertions[]) {}
+
+  enter = (
+    source: AnyEffect,
+    useResult: (result?: unknown) => void,
+  ) => {
+    return new TraceDescBuilder([
+      ...this.assertions,
+      new TraceEnterEventDec(source, useResult),
+    ]);
+  };
+
+  exit = (
+    source: AnyEffect,
+    useResult: (result?: ExitResult) => void,
+  ) => {
+    return new TraceDescBuilder([
+      ...this.assertions,
+      new TraceExitEventDesc(source, useResult),
+    ]);
+  };
+}
+
+export type TraceEventDesc<
+  EnterResult,
+  ExitResult_,
+> = TraceEnterEventDec<EnterResult> | TraceExitEventDesc<ExitResult_>;
+
+export class TraceEnterEventDec<Result> {
+  readonly kind = "enter";
+  constructor(
+    readonly source: AnyEffect,
+    readonly result?: Result,
+  ) {}
+}
+
+export class TraceExitEventDesc<Result> {
+  readonly kind = "exit";
+  constructor(
+    readonly source: AnyEffect,
+    readonly result?: Result,
+  ) {}
 }
 
 export function assertTrace(
-  actual: Trace,
-  expected: Trace,
+  trace: Trace,
+  traceAssertionBuilder: TraceDescBuilder,
 ) {
-  assert(actual.sequence.length === expected.sequence.length);
-  actual.sequence.forEach((actualEvent, i) => {
-    const expectedEvent = expected.sequence[i]!;
-    assert(actualEvent.source === expectedEvent.source);
-    switch (actualEvent.kind) {
-      case "enter": {
-        assert(expectedEvent.kind === "enter");
-        assert(actualEvent.enterResult === expectedEvent.enterResult);
-        break;
-      }
-      case "exit": {
-        assert(expectedEvent.kind === "exit");
-        assert(actualEvent.exitResult === expectedEvent.exitResult);
-        break;
-      }
-    }
+  const digest = trace.digest();
+  assert(digest.length === traceAssertionBuilder.assertions.length);
+  digest.forEach((desc, i) => {
+    const expected = traceAssertionBuilder.assertions[i];
+    assert(expected);
+    assert(desc.kind === expected.kind);
+    assert(desc.source === expected.source);
+    expected.result?.(desc.result as any);
   });
 }
