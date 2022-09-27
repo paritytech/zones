@@ -1,9 +1,9 @@
-import { ExitResult } from "./common.ts";
+import { ExitStatus } from "./common.ts";
 import { assert } from "./deps/std/testing/asserts.ts";
 import { AnyEffect } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
 
-export type TraceEventHookDesc = TraceEventDesc<unknown, ExitResult>;
+export type TraceEventHookDesc = TraceEventDesc<unknown, ExitStatus>;
 
 export interface Trace extends Hooks {
   digest: () => TraceEventHookDesc[];
@@ -32,15 +32,19 @@ export function traceDesc(...initial: TraceAssertions[]) {
 
 export type TraceAssertions = TraceEventDesc<
   (useResult?: unknown) => void,
-  (useResult?: ExitResult) => void
+  (useResult?: ExitStatus) => void
 >;
 
 export class TraceDescBuilder {
   constructor(readonly assertions: TraceAssertions[]) {}
 
+  digest = (): TraceAssertions[] => {
+    return [...this.assertions];
+  };
+
   enter = (
     source: AnyEffect,
-    useResult: (result?: unknown) => void,
+    useResult?: (result?: unknown) => void,
   ) => {
     return new TraceDescBuilder([
       ...this.assertions,
@@ -50,7 +54,7 @@ export class TraceDescBuilder {
 
   exit = (
     source: AnyEffect,
-    useResult: (result?: ExitResult) => void,
+    useResult?: (result?: ExitStatus) => void,
   ) => {
     return new TraceDescBuilder([
       ...this.assertions,

@@ -1,15 +1,13 @@
 import { ExitResult } from "./common.ts";
 import { AnyEffect } from "./Effect.ts";
-import { Context, RunState } from "./Runtime.ts";
+import { RuntimeContext } from "./Runtime.ts";
 
 export abstract class Work<Source extends AnyEffect = AnyEffect> {
-  abstract enter: Run<unknown>;
-  abstract exit: Run<ExitResult>;
-
   constructor(
-    readonly context: Context,
+    readonly context: RuntimeContext,
     readonly source: Source,
   ) {}
-}
 
-type Run<T> = (state: RunState) => T;
+  abstract enter: () => unknown;
+  abstract exit: () => ExitResult;
+}

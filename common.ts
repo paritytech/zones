@@ -23,8 +23,6 @@ export type T<U> = U extends EffectLike<boolean, any, Error, infer T> ? T : U;
 export type Collection$<C> = { [K in keyof C]: $<C[K]> };
 export type CollectionT<C> = { [K in keyof C]: T<C[K]> };
 
-export type ExitResult =
-  | void
-  | undefined
-  | Error
-  | Promise<void | undefined | Error>;
+export type ExitStatus = void | Error;
+export type ExitStatusPending = Promise<ExitStatus>;
+export type ExitResult = ExitStatus | ExitStatusPending;

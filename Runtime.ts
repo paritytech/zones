@@ -1,5 +1,6 @@
 import { Atom } from "./Atom.ts";
 import { EffectLike, isEffectLike } from "./common.ts";
+import { deferred } from "./deps/std/async.ts";
 import { EffectId } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
 import { Name } from "./Name.ts";
@@ -11,7 +12,6 @@ export interface RuntimeProps {
 }
 
 export function runtime(props?: RuntimeProps): Runtime {
-  const contexts = new WeakMap<object, Context>();
   return <
     S extends boolean,
     V,
@@ -21,14 +21,9 @@ export function runtime(props?: RuntimeProps): Runtime {
     root: EffectLike<S, V, E, T>,
     ...[env]: unknown extends V ? [] : [env: V]
   ) => {
-    const key = typeof env === "function" || typeof env === "object" ? env : {};
-    let context = contexts.get(key);
-    if (!context) {
-      context = new Context(props, env);
-      contexts.set(key, context);
-    }
-    const state = context.state(root);
-    return context.get(root.id)!.enter(state) as ColoredResult<S, E | T>;
+    return new RuntimeContext(props, root, env)
+      .get(root.id)!
+      .enter() as ColoredResult<S, E | T>;
   };
 }
 
@@ -45,32 +40,16 @@ export type Runtime = <
 export type ColoredResult<S extends boolean, R> = false extends S ? Promise<R>
   : R;
 
-export class RunState {
+export class RuntimeContext extends Map<EffectId, Work> {
   dependents = new Map<EffectId, Set<EffectId>>();
+  trap = deferred<Error>();
 
-  relate = (
-    child: EffectId,
-    parent: EffectId,
-  ) => {
-    const dependents = this.dependents.get(child);
-    if (dependents) {
-      dependents.add(parent);
-    } else {
-      this.dependents.set(child, new Set([parent]));
-    }
-  };
-}
-
-export class Context extends Map<EffectId, Work> {
   constructor(
     readonly props: RuntimeProps | undefined,
+    readonly root: EffectLike,
     readonly env: unknown,
   ) {
     super();
-  }
-
-  state = (root: EffectLike): RunState => {
-    const state = new RunState();
     const visit: [source: EffectLike, parentId?: EffectId][] = [[root]];
     while (visit.length) {
       const [source, parentId] = visit.pop()!;
@@ -91,9 +70,13 @@ export class Context extends Map<EffectId, Work> {
         });
       }
       if (parentId) {
-        state.relate(source.id, parentId);
+        const dependents = this.dependents.get(source.id);
+        if (dependents) {
+          dependents.add(parentId);
+        } else {
+          this.dependents.set(source.id, new Set([parentId]));
+        }
       }
     }
-    return state;
-  };
+  }
 }

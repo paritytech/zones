@@ -1,7 +1,7 @@
 import { AtomWork } from "./AtomWork.ts";
 import { Collection$, CollectionT, E, ExitResult, S, V } from "./common.ts";
 import { Effect, EffectId } from "./Effect.ts";
-import { Context } from "./Runtime.ts";
+import { RuntimeContext } from "./Runtime.ts";
 import { sig } from "./Signature.ts";
 import { noop, U2I } from "./util.ts";
 
@@ -53,7 +53,7 @@ export class Atom<
     this.id = id + ")" as EffectId;
   }
 
-  work = (context: Context): AtomWork => {
+  work = (context: RuntimeContext): AtomWork => {
     return new AtomWork(context, this);
   };
 }

@@ -1,4 +1,4 @@
-import { Context } from "./Runtime.ts";
+import { RuntimeContext } from "./Runtime.ts";
 import { Signature } from "./Signature.ts";
 import { Work } from "./Work.ts";
 
@@ -22,7 +22,7 @@ export abstract class Effect<
   declare [T_]: T;
 
   abstract id: EffectId;
-  abstract work: (context: Context) => Work;
+  abstract work: (context: RuntimeContext) => Work;
 
   declare dependencies?: Set<AnyEffect>;
 }

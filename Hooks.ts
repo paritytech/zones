@@ -1,13 +1,13 @@
-import { ExitResult } from "./common.ts";
+import { ExitStatus } from "./common.ts";
 import { AnyEffect } from "./Effect.ts";
 
 export type Hook<Result> = (
   source: AnyEffect,
   result: Result,
-) => void;
+) => void | Promise<void>;
 
 export type EnterHook = Hook<unknown>;
-export type ExitHook = Hook<ExitResult>;
+export type ExitHook = Hook<ExitStatus>;
 
 export interface Hooks {
   enter?: EnterHook;
