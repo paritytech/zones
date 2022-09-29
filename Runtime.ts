@@ -21,9 +21,9 @@ export function runtime(props?: RuntimeProps): Runtime {
     root: EffectLike<S, V, E, T>,
     ...[env]: unknown extends V ? [] : [env: V]
   ) => {
-    return new RuntimeContext(props, root, env)
-      .get(root.id)!
-      .enter() as ColoredResult<S, E | T>;
+    const context = new RuntimeContext(props, root, env);
+    const rootWork = context.get(root.id)!;
+    return rootWork.init() as ColoredResult<S, E | T>;
   };
 }
 

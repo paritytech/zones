@@ -8,6 +8,7 @@ export abstract class Work<Source extends AnyEffect = AnyEffect> {
     readonly source: Source,
   ) {}
 
-  abstract enter: () => unknown;
+  abstract init(): unknown;
+
   abstract exit: () => ExitResult;
 }

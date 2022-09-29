@@ -1,10 +1,10 @@
-import { ExitStatus } from "./common.ts";
-import { AnyEffect } from "./Effect.ts";
+import { ExitResult, ExitStatus } from "./common.ts";
+import { Work } from "./Work.ts";
 
 export type Hook<Result> = (
-  source: AnyEffect,
+  work: Work,
   result: Result,
-) => void | Promise<void>;
+) => ExitResult;
 
 export type EnterHook = Hook<unknown>;
 export type ExitHook = Hook<ExitStatus>;

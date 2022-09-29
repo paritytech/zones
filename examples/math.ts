@@ -23,6 +23,7 @@ export const add = Z.atomf(function(
 
 const root = add(1, add(2, add(3, 4)));
 
+// TODO: sync
 const result = await Z.runtime()(root, {
   add(a, b) {
     return a + b;

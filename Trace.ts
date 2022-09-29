@@ -17,11 +17,11 @@ export function trace(...events: TraceEventHookDesc[]): Trace {
       sequence = [];
       return s;
     },
-    enter: (source, result) => {
-      sequence.push(new TraceEnterEventDec(source, result));
+    enter: (work, result) => {
+      sequence.push(new TraceEnterEventDec(work.source, result));
     },
-    exit: (source, result) => {
-      sequence.push(new TraceExitEventDesc(source, result));
+    exit: (work, result) => {
+      sequence.push(new TraceExitEventDesc(work.source, result));
     },
   };
 }

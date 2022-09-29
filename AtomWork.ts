@@ -6,104 +6,79 @@ import {
   isEffectLike,
 } from "./common.ts";
 import { Deferred, deferred } from "./deps/std/async.ts";
-import { assert } from "./deps/std/testing/asserts.ts";
 import { EffectId } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
-import { RunState } from "./Runtime.ts";
 import { UnexpectedThrow } from "./UnexpectedThrow.ts";
-import { assertKnownWork, noop, uninitialized } from "./util.ts";
+import { assertKnownWork, noop } from "./util.ts";
 import { Work } from "./Work.ts";
 
 export class AtomWork extends Work<Atom> {
-  enterResult: unknown = uninitialized;
-  exitResult: uninitialized | Deferred<ExitStatus> = uninitialized;
+  declare enterResult?: unknown;
+  declare exitResult?: ExitResult;
 
-  enter = (state: RunState) => {
-    if (this.enterResult === uninitialized) {
-      const argPendings: unknown[] = [];
-      for (const arg of this.source.args) {
-        if (isEffectLike(arg)) {
-          argPendings.push(this.#enterArg(state, arg.id));
-        } else {
-          argPendings.push(arg);
-        }
-      }
-      this.enterResult = Promise.race([
-        state.trap,
-        this.#enter(state, argPendings),
-      ]);
+  init = () => {
+    if (!("enterResult" in this)) {
+      const args = this.#args();
+      this.enterResult = args.then(this.#enter);
     }
     return this.enterResult;
   };
 
-  #enterArg = (
-    state: RunState,
-    id: EffectId,
-  ) => {
-    const argWork = this.context.get(id)!;
-    const argWorkEnterResult = argWork.enter(state);
-  };
-
-  #enter = async (
-    state: RunState,
-    args: unknown[],
-  ) => {
-    const argResolveds = await Promise.all(args);
-    for (const argResolved of argResolveds) {
-      if (argResolved instanceof Error) {
-        return argResolved;
+  #args = (): Promise<unknown[]> => {
+    const buffer: unknown[] = [];
+    for (const arg of this.source.args) {
+      if (isEffectLike(arg)) {
+        const argEnterResult = this.context.get(arg.id)!.init();
+        buffer.push(argEnterResult);
+      } else {
+        buffer.push(arg);
       }
     }
-    const enterResult = this.#catchUnexpectedThrow(() => {
-      return this.source.enter.bind(this.context.env)(...argResolveds);
-    });
-    const exitResult = await this.#catchUnexpectedThrow(() => {
-      return this.#argExits(state);
-    });
-    // exit here if root or enterResult is error
-    if (exitResult instanceof Error) {
-      return exitResult;
-    }
-    return enterResult;
+    return Promise.all(buffer);
   };
 
-  #argExits = (state: RunState) => {
+  #enter = async (args: unknown[]): Promise<unknown> => {
+    try {
+      return await this.source.enter.bind(this.context.env)(...args);
+    } catch (e) {
+      return new UnexpectedThrow(e, this);
+    }
+  };
+
+  #exitArgs = () => {
     if (this.source.dependencies) {
-      const argExitPendings: ExitStatusPending[] = [];
+      const argExitPendings: ExitResult[] = [];
       for (const dependency of this.source.dependencies) {
-        const dependencyWork = this.context.get(dependency.id)!;
-        assertKnownWork(dependencyWork);
-        const exitResult = dependencyWork.exit(state);
-        if (exitResult instanceof Error) {
-          return exitResult;
-        } else if (exitResult instanceof Promise) {
-          argExitPendings.push(exitResult);
-        }
+        argExitPendings.push(this.#exitArg(dependency.id));
       }
-      if (argExitPendings.length) {
-        return Promise.all(argExitPendings).then((exitStatuses) => {
-          for (const exitStatus of exitStatuses) {
-            if (exitStatus instanceof Error) {
-              return exitStatus;
-            }
+      return Promise.all(argExitPendings).then((exitStatuses) => {
+        for (const exitStatus of exitStatuses) {
+          if (exitStatus instanceof Error) {
+            return exitStatus;
           }
-          return;
-        });
-      }
+        }
+        return;
+      });
     }
     return;
   };
 
-  exit = (state: RunState) => {
-    if (this.exitResult === uninitialized) {
+  #exitArg = (id: EffectId) => {
+    const dependencyWork = this.context.get(id)!;
+    assertKnownWork(dependencyWork);
+    return dependencyWork.exit();
+  };
+
+  exit = () => {
+    if (!("exitResult" in this)) {
       if (this.source.exit === noop) {
         this.exitResult = Promise.resolve() as Deferred<void>;
       } else {
         this.exitResult = deferred<ExitStatus>();
-        const dependents = state.dependents.get(this.source.id);
+        const dependents = this.context.dependents.get(this.source.id);
         if (!dependents?.size) {
           this.#catchUnexpectedThrow(async () => {
-            const enterResult = await this.enter(state);
+            const enterResult = await this.init();
             return this.source.exit.bind(this.context.env)(enterResult);
           });
         }
@@ -112,37 +87,24 @@ export class AtomWork extends Work<Atom> {
     return this.exitResult;
   };
 
-  #catchUnexpectedThrow = <T>(
-    run: () => T | Promise<T>,
-  ): T | UnexpectedThrow | Promise<T | UnexpectedThrow> => {
-    try {
-      const runResult = run();
-      if (runResult instanceof Promise) {
-        return (async () => {
-          try {
-            return await runResult;
-          } catch (thrown) {
-            return new UnexpectedThrow(thrown, this);
-          }
-        })();
-      }
-      return runResult;
-    } catch (thrown) {
-      return new UnexpectedThrow(thrown, this);
-    }
-  };
-
-  // hook = (which: keyof Hooks) => {
-  //   return this.context.props?.hooks?.reduce(async (acc, hooks) => {
-  //     await acc;
-  //     const hook = hooks?.[which];
-  //     if (hook) {
-  //       const hookResult = hook(this.source, await this.enterResult);
-  //       if (hookResult instanceof Promise) {
-  //         await hookResult;
+  // hook = <W extends keyof Hooks>(which: W) => {
+  //   const hooks = this.context.props?.hooks;
+  //   if (hooks) {
+  //     let pending: ExitStatusPending | undefined;
+  //     for (const { [which]: hook } of hooks) {
+  //       if (hook) {
+  //         const hookResult = hook?.(
+  //           this,
+  //           {
+  //             enter: this.enterResult,
+  //             exit: this.exitResult,
+  //           }[which] as ExitStatus,
+  //         );
+  //         if (hookResult instanceof Error) {
+  //           return hookResult;
+  //         } else if (hookResult instanceof Promise) {}
   //       }
-  //       return hookResult;
   //     }
-  //   }, Promise.resolve());
+  //   }
   // };
 }

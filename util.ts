@@ -27,6 +27,3 @@ export function assertKnownWork(
 ): asserts inQuestion is AtomWork {
   assert(inQuestion instanceof AtomWork);
 }
-
-export const uninitialized = Symbol();
-export type uninitialized = typeof uninitialized;
