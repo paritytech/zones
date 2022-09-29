@@ -16,6 +16,6 @@ class Add<A extends Z.$<number>, B extends Z.$<number>> extends Z.Name {
 
 const root = new Add(1, new Add(2, new Add(3, 4)));
 
-const result = Z.runtime()(root);
+const result = await Z.runtime()(root);
 
 console.log(result);

@@ -3,6 +3,11 @@ import { assert } from "./deps/std/testing/asserts.ts";
 import { AnyEffect } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
 
+export type TraceEventDesc<
+  EnterResult,
+  ExitResult_,
+> = TraceEnterEventDec<EnterResult> | TraceExitEventDesc<ExitResult_>;
+
 export type TraceEventHookDesc = TraceEventDesc<unknown, ExitStatus>;
 
 export interface Trace extends Hooks {
@@ -62,11 +67,6 @@ export class TraceDescBuilder {
     ]);
   };
 }
-
-export type TraceEventDesc<
-  EnterResult,
-  ExitResult_,
-> = TraceEnterEventDec<EnterResult> | TraceExitEventDesc<ExitResult_>;
 
 export class TraceEnterEventDec<Result> {
   readonly kind = "enter";

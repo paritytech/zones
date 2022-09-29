@@ -1,15 +1,7 @@
 import { ExitResult, ExitStatus } from "./common.ts";
 import { Work } from "./Work.ts";
 
-export type Hook<Result> = (
-  work: Work,
-  result: Result,
-) => ExitResult;
-
-export type EnterHook = Hook<unknown>;
-export type ExitHook = Hook<ExitStatus>;
-
-export interface Hooks {
-  enter?: EnterHook;
-  exit?: ExitHook;
+export abstract class Hooks {
+  abstract enter: (work: Work, enterResult: unknown) => ExitResult;
+  abstract exit: (work: Work, exitResult: ExitStatus) => ExitResult;
 }

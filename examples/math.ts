@@ -17,13 +17,10 @@ export const add = Z.atomf(function(
     return new AddZeroErr();
   }
   return this.add(a, b);
-}, (x) => {
-  console.log(x);
 });
 
 const root = add(1, add(2, add(3, 4)));
 
-// TODO: sync
 const result = await Z.runtime()(root, {
   add(a, b) {
     return a + b;

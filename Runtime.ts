@@ -1,6 +1,6 @@
 import { Atom } from "./Atom.ts";
 import { EffectLike, isEffectLike } from "./common.ts";
-import { deferred } from "./deps/std/async.ts";
+import { Deferred, deferred } from "./deps/std/async.ts";
 import { EffectId } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
 import { Name } from "./Name.ts";
@@ -21,9 +21,8 @@ export function runtime(props?: RuntimeProps): Runtime {
     root: EffectLike<S, V, E, T>,
     ...[env]: unknown extends V ? [] : [env: V]
   ) => {
-    const context = new RuntimeContext(props, root, env);
-    const rootWork = context.get(root.id)!;
-    return rootWork.init() as ColoredResult<S, E | T>;
+    return new RuntimeContext(props, root, env)
+      .coloredResult() as ColoredResult<S, E | T>;
   };
 }
 
@@ -40,16 +39,27 @@ export type Runtime = <
 export type ColoredResult<S extends boolean, R> = false extends S ? Promise<R>
   : R;
 
-export class RuntimeContext extends Map<EffectId, Work> {
-  dependents = new Map<EffectId, Set<EffectId>>();
-  trap = deferred<Error>();
+export class RuntimeContext {
+  #work = new Map<EffectId, Work>();
+  #dependents = new Map<EffectId, Set<EffectId>>();
+  #error?: Deferred<Error>;
 
   constructor(
     readonly props: RuntimeProps | undefined,
     readonly root: EffectLike,
     readonly env: unknown,
   ) {
-    super();
+    this.register(root);
+  }
+
+  get error(): Deferred<Error> {
+    if (!this.#error) {
+      this.#error = deferred();
+    }
+    return this.#error;
+  }
+
+  register = (root: EffectLike): void => {
     const visit: [source: EffectLike, parentId?: EffectId][] = [[root]];
     while (visit.length) {
       const [source, parentId] = visit.pop()!;
@@ -57,10 +67,10 @@ export class RuntimeContext extends Map<EffectId, Work> {
         visit.push([source.root, parentId]);
         continue;
       }
-      let work = this.get(source.id);
+      let work = this.#work.get(source.id);
       if (!work) {
         work = source.work(this);
-        this.set(source.id, work);
+        this.#work.set(source.id, work);
       }
       if (source instanceof Atom) {
         source.args.forEach((arg) => {
@@ -70,13 +80,43 @@ export class RuntimeContext extends Map<EffectId, Work> {
         });
       }
       if (parentId) {
-        const dependents = this.dependents.get(source.id);
-        if (dependents) {
-          dependents.add(parentId);
-        } else {
-          this.dependents.set(source.id, new Set([parentId]));
-        }
+        this.#addDependent(source.id, parentId);
       }
     }
-  }
+  };
+
+  work = (effectId: EffectId): Work => {
+    return this.#work.get(effectId)!;
+  };
+
+  result = (effectId: EffectId): unknown => {
+    return this.work(effectId).result();
+  };
+
+  dependents = (effectId: EffectId): Set<EffectId> | undefined => {
+    return this.#dependents.get(effectId);
+  };
+
+  reject = (error: Error): void => {
+    this.error.reject(error);
+  };
+
+  coloredResult = () => {
+    return Promise.race([
+      this.error,
+      this.result(this.root.id),
+    ]);
+  };
+
+  #addDependent = (
+    childId: EffectId,
+    parentId: EffectId,
+  ): void => {
+    const dependents = this.#dependents.get(childId);
+    if (dependents) {
+      dependents.add(parentId);
+    } else {
+      this.#dependents.set(childId, new Set([parentId]));
+    }
+  };
 }

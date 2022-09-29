@@ -1,110 +1,103 @@
 import { Atom } from "./Atom.ts";
-import {
-  ExitResult,
-  ExitStatus,
-  ExitStatusPending,
-  isEffectLike,
-} from "./common.ts";
-import { Deferred, deferred } from "./deps/std/async.ts";
-import { EffectId } from "./Effect.ts";
-import { Hooks } from "./Hooks.ts";
+import { isEffectLike } from "./common.ts";
+import { unimplemented } from "./deps/std/testing/asserts.ts";
 import { UnexpectedThrow } from "./UnexpectedThrow.ts";
-import { assertKnownWork, noop } from "./util.ts";
 import { Work } from "./Work.ts";
 
 export class AtomWork extends Work<Atom> {
-  declare enterResult?: unknown;
-  declare exitResult?: ExitResult;
+  declare value?: unknown;
 
-  init = () => {
-    if (!("enterResult" in this)) {
-      const args = this.#args();
-      this.enterResult = args.then(this.#enter);
+  result = () => {
+    if (!("value" in this)) {
+      this.value = this.#result();
     }
-    return this.enterResult;
+    return this.value;
   };
 
-  #args = (): Promise<unknown[]> => {
-    const buffer: unknown[] = [];
-    for (const arg of this.source.args) {
+  #result = async () => {
+    // 1. resolve args
+    const args = await this.#enterArgs();
+    // 2. execute enter
+    const result = await this.#enter(args);
+    // 3. execute dependency exits if no more dependents
+    await this.#exitArgs();
+    // 4. execute current exit if root
+    !this.context.dependents(this.source.id)
+      && await this.#exit(result);
+    // 5. return the result
+    return result;
+  };
+
+  #enterArgs = async (): Promise<unknown[]> => {
+    const resolved = new Array<unknown>(this.source.args.length);
+    const pending: Promise<unknown>[] = [];
+    for (let i = 0; i < this.source.args.length; i++) {
+      const arg = this.source.args[i]!;
       if (isEffectLike(arg)) {
-        const argEnterResult = this.context.get(arg.id)!.init();
-        buffer.push(argEnterResult);
+        const argEnterResult = this.context.result(arg.id);
+        if (argEnterResult instanceof Promise) {
+          pending.push(argEnterResult.then((result) => {
+            resolved[i] = result;
+          }));
+        } else {
+          resolved[i] = argEnterResult;
+        }
       } else {
-        buffer.push(arg);
+        resolved[i] = arg;
       }
     }
-    return Promise.all(buffer);
+    await Promise.all(pending);
+    return resolved;
   };
 
   #enter = async (args: unknown[]): Promise<unknown> => {
-    try {
-      return await this.source.enter.bind(this.context.env)(...args);
-    } catch (e) {
-      return new UnexpectedThrow(e, this);
-    }
+    const result = await this.#run(() => {
+      return this.source.enter.bind(this.context.env)(...args);
+    });
+    this.source.dependencies?.forEach(({ id }) => {
+      this.context.dependents(id)?.delete(this.source.id);
+    });
+    return result;
   };
 
-  #exitArgs = () => {
+  #exitArgs = async () => {
     if (this.source.dependencies) {
-      const argExitPendings: ExitResult[] = [];
-      for (const dependency of this.source.dependencies) {
-        argExitPendings.push(this.#exitArg(dependency.id));
-      }
-      return Promise.all(argExitPendings).then((exitStatuses) => {
-        for (const exitStatus of exitStatuses) {
-          if (exitStatus instanceof Error) {
-            return exitStatus;
+      const pending: Promise<unknown>[] = [];
+      for (const { id } of this.source.dependencies) {
+        const dependencyDependents = this.context.dependents(id);
+        if (dependencyDependents?.size === 0) {
+          const work = this.context.work(id);
+          if (work instanceof AtomWork) {
+            pending.push(work.#exit());
+          } else {
+            unimplemented();
           }
         }
-        return;
+      }
+      await Promise.all(pending);
+    }
+  };
+
+  #exit = async (result?: unknown) => {
+    if (this.source.exit) {
+      await this.#run(async () => {
+        return this.source.exit.bind(this.context.env)(
+          result || await this.value,
+        );
       });
     }
-    return;
   };
 
-  #exitArg = (id: EffectId) => {
-    const dependencyWork = this.context.get(id)!;
-    assertKnownWork(dependencyWork);
-    return dependencyWork.exit();
-  };
-
-  exit = () => {
-    if (!("exitResult" in this)) {
-      if (this.source.exit === noop) {
-        this.exitResult = Promise.resolve() as Deferred<void>;
-      } else {
-        this.exitResult = deferred<ExitStatus>();
-        const dependents = this.context.dependents.get(this.source.id);
-        if (!dependents?.size) {
-          this.#catchUnexpectedThrow(async () => {
-            const enterResult = await this.init();
-            return this.source.exit.bind(this.context.env)(enterResult);
-          });
-        }
-      }
+  #run = async (fn: () => unknown) => {
+    let result: unknown;
+    try {
+      result = await fn();
+    } catch (e) {
+      result = new UnexpectedThrow(e, this);
     }
-    return this.exitResult;
+    if (result instanceof Error) {
+      this.context.reject(result);
+    }
+    return result;
   };
-
-  // hook = <W extends keyof Hooks>(which: W) => {
-  //   const hooks = this.context.props?.hooks;
-  //   if (hooks) {
-  //     let pending: ExitStatusPending | undefined;
-  //     for (const { [which]: hook } of hooks) {
-  //       if (hook) {
-  //         const hookResult = hook?.(
-  //           this,
-  //           {
-  //             enter: this.enterResult,
-  //             exit: this.exitResult,
-  //           }[which] as ExitStatus,
-  //         );
-  //         if (hookResult instanceof Error) {
-  //           return hookResult;
-  //         } else if (hookResult instanceof Promise) {}
-  //       }
-  //     }
-  //   }
-  // };
 }

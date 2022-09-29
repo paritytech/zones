@@ -1,9 +1,11 @@
+// TODO: sync version
+
 import { AtomWork } from "./AtomWork.ts";
 import { Collection$, CollectionT, E, ExitResult, S, V } from "./common.ts";
 import { Effect, EffectId } from "./Effect.ts";
 import { RuntimeContext } from "./Runtime.ts";
 import { sig } from "./Signature.ts";
-import { noop, U2I } from "./util.ts";
+import { U2I } from "./util.ts";
 
 export class Atom<
   A extends unknown[] = any[],
@@ -47,7 +49,7 @@ export class Atom<
       id += "),";
     }
     id += `enter_${sig.ref(this.enter)}`;
-    if (this.exit !== noop as any) {
+    if (this.exit) {
       id += `,exit_${sig.ref(this.exit)}`;
     }
     this.id = id + ")" as EffectId;
@@ -67,7 +69,7 @@ export function atom<
 >(
   args: [...A],
   enter: (this: EnterV, ...args: CollectionT<A>) => EnterR,
-  exit: (this: ExitV, enterR: EnterR) => ExitR = noop as any,
+  exit: (this: ExitV, enterR: EnterR) => ExitR = undefined!,
 ): Atom<A, EnterV, EnterR, ExitV, ExitR> {
   return new Atom(args, enter, exit);
 }
@@ -80,7 +82,7 @@ export function atomf<
   ExitR extends ExitResult = void,
 >(
   enter: (this: EnterV, ...args: X) => EnterR,
-  exit: (this: ExitV, enterR: EnterR) => ExitR = noop as any,
+  exit: (this: ExitV, enterR: EnterR) => ExitR = undefined!,
 ) {
   return <A extends Collection$<X>>(
     ...args: A
