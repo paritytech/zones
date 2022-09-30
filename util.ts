@@ -1,9 +1,3 @@
-import { Atom } from "./Atom.ts";
-import { AtomWork } from "./AtomWork.ts";
-import { assert } from "./deps/std/testing/asserts.ts";
-import { AnyEffect } from "./Effect.ts";
-import { Work } from "./Work.ts";
-
 export interface MapLike<K, V> {
   set(key: K, value: V): void;
   has(key: K): boolean;

@@ -27,7 +27,7 @@ Deno.test("name", () => {
   run(b);
   Z.assertTrace(
     trace,
-    Z.traceDesc()
+    Z.traceMock()
       .enter(a.root, (result) => assertEquals(result, "A"))
       .enter(b.root, (result) => assertEquals(result, "A")),
   );

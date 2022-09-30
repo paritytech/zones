@@ -12,7 +12,7 @@ Deno.test("Order", async (t) => {
       run(a2);
       Z.assertTrace(
         trace,
-        Z.traceDesc()
+        Z.traceMock()
           .enter(a0, (r) => asserts.assertEquals(r, "A"))
           .enter(a1, (r) => asserts.assertEquals(r, ["A", "B"]))
           .enter(a2, (r) => asserts.assertEquals(r, ["A", "B", "C"])),
@@ -30,7 +30,7 @@ Deno.test("Order", async (t) => {
       run(a2);
       Z.assertTrace(
         trace,
-        Z.traceDesc()
+        Z.traceMock()
           .enter(a0, (r) => asserts.assertEquals(r, "A"))
           .enter(a1, (r) => asserts.assertEquals(r, ["A", "B"]))
           .exit(a0)
@@ -53,7 +53,7 @@ Deno.test("Order", async (t) => {
       run(a2);
       Z.assertTrace(
         trace,
-        Z.traceDesc()
+        Z.traceMock()
           .enter(a0, (r) => asserts.assertEquals(r, "A"))
           .enter(a1, (r) => asserts.assertEquals(r, ["A", "B"]))
           .exit(a0, (r) => asserts.assertInstanceOf(r, Error))
@@ -74,7 +74,7 @@ Deno.test("Order", async (t) => {
       run(a2);
       Z.assertTrace(
         trace,
-        Z.traceDesc()
+        Z.traceMock()
           .enter(a0, (r) => asserts.assertEquals(r, "A"))
           .enter(a1, (r) => asserts.assertEquals(r, ["A", "B"]))
           .exit(a0)
@@ -97,7 +97,7 @@ Deno.test("Order", async (t) => {
       run(a2);
       Z.assertTrace(
         trace,
-        Z.traceDesc()
+        Z.traceMock()
           .enter(a0, (r) => asserts.assertEquals(r, "A"))
           .enter(a1, (r) => asserts.assertEquals(r, ["A", "B"]))
           .exit(a0)
