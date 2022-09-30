@@ -7,5 +7,5 @@ export abstract class Work<Source extends AnyEffect = AnyEffect> {
     readonly source: Source,
   ) {}
 
-  abstract result(): unknown;
+  abstract run(): unknown;
 }

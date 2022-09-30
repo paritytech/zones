@@ -8,6 +8,7 @@ import {
   S,
   V,
 } from "./common.ts";
+import { deferred } from "./deps/std/async.ts";
 import { unimplemented } from "./deps/std/testing/asserts.ts";
 import { Effect, EffectId } from "./Effect.ts";
 import { RuntimeContext } from "./Runtime.ts";
@@ -108,46 +109,65 @@ export class Atom<
 export class AtomWork extends Work<Atom> {
   declare value?: unknown;
 
-  result = () => {
+  run = () => {
     if (!("value" in this)) {
-      this.value = this.#result();
+      this.value = this.#value();
     }
     return this.value;
   };
 
-  #result = async () => {
+  #value = async () => {
     // 1. resolve args
-    const args = await this.#enterArgs();
+    const _0 = await this.#enterArgs();
+    if (_0 instanceof Error) return _0;
+
     // 2. execute enter
-    const result = await this.#enter(args);
+    const value = await this.#enter(_0);
+    if (value instanceof Error) return value;
+
     // 3. execute dependency exits if no more dependents
-    await this.#exitArgs();
+    const _2 = await this.#exitArgs();
+    if (_2 instanceof Error) return _2;
+
     // 4. execute current exit if root
-    !this.context.dependents(this.source.id) && await this.#exit();
+    if (!this.context.dependents(this.source.id)) {
+      const _3 = await this.#exit();
+      if (_3) return _3;
+    }
+
     // 5. return the result
-    return result;
+    return value;
   };
 
-  #enterArgs = async (): Promise<unknown[]> => {
-    const resolved = new Array<unknown>(this.source.args.length);
+  #enterArgs = (): Promise<Error | unknown[]> => {
+    const argsResolved = new Array<unknown>(this.source.args.length);
     const pending: Promise<unknown>[] = [];
+    const trap = deferred<Error>();
     for (let i = 0; i < this.source.args.length; i++) {
       const arg = this.source.args[i]!;
       if (isEffectLike(arg)) {
         const argEnterResult = this.context.result(arg.id);
         if (argEnterResult instanceof Promise) {
           pending.push(argEnterResult.then((result) => {
-            resolved[i] = result;
+            if (result instanceof Error) {
+              trap.resolve(result);
+            } else {
+              argsResolved[i] = result;
+            }
           }));
         } else {
-          resolved[i] = argEnterResult;
+          if (argEnterResult instanceof Error) {
+            trap.resolve(argEnterResult);
+            break;
+          }
+          argsResolved[i] = argEnterResult;
         }
       } else {
-        resolved[i] = arg;
+        argsResolved[i] = arg;
       }
     }
-    await Promise.all(pending);
-    return resolved;
+    const args = Promise.all(pending).then(() => argsResolved);
+    return Promise.race([trap, args]);
   };
 
   #enter = async (args: unknown[]): Promise<unknown> => {
@@ -161,12 +181,12 @@ export class AtomWork extends Work<Atom> {
       result = new UnexpectedThrow(e, this.source);
     }
     if (result instanceof Error) {
-      return this.context.reject(result);
+      this.context.reject(result);
     }
     return result;
   };
 
-  #exitArgs = async () => {
+  #exitArgs = async (): Promise<ExitStatus> => {
     if (this.source.dependencies) {
       const pending: Promise<unknown>[] = [];
       for (const { id } of this.source.dependencies) {
@@ -184,7 +204,7 @@ export class AtomWork extends Work<Atom> {
     }
   };
 
-  #exit = async () => {
+  #exit = async (): Promise<ExitStatus> => {
     if (this.source.exit) {
       let result: ExitStatus;
       try {
@@ -194,9 +214,7 @@ export class AtomWork extends Work<Atom> {
       } catch (e) {
         result = new UnexpectedThrow(e, this.source);
       }
-      if (result instanceof Error) {
-        this.context.reject(result);
-      }
+      return result;
     }
   };
 }

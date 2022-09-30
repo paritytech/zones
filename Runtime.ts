@@ -43,6 +43,7 @@ export class RuntimeContext {
   #work = new Map<EffectId, Work>();
   #dependents = new Map<EffectId, Set<EffectId>>();
   #error?: Deferred<Error>;
+  #abortController?: AbortController; // TODO: expose
 
   constructor(
     readonly props: RuntimeProps | undefined,
@@ -57,6 +58,13 @@ export class RuntimeContext {
       this.#error = deferred();
     }
     return this.#error;
+  }
+
+  get abortController(): AbortController {
+    if (!this.#abortController) {
+      this.#abortController = new AbortController();
+    }
+    return this.#abortController;
   }
 
   register = (root: EffectLike): void => {
@@ -90,7 +98,7 @@ export class RuntimeContext {
   };
 
   result = (effectId: EffectId): unknown => {
-    return this.work(effectId).result();
+    return this.work(effectId).run();
   };
 
   dependents = (effectId: EffectId): Set<EffectId> | undefined => {
