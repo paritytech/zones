@@ -21,10 +21,12 @@ export const add = Z.atomf(function(
 
 const root = add(1, add(2, add(3, 4)));
 
-const result = await Z.runtime()(root, {
+const { run } = new Z.Runtime();
+
+const result = await run(root, {
   add(a, b) {
     return a + b;
   },
 });
 
-// console.log(result);
+console.log(result);

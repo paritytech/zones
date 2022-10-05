@@ -1,7 +1,13 @@
 import { ExitResult, ExitStatus } from "./common.ts";
-import { Work } from "./Work.ts";
+import { EffectState } from "./Process.ts";
 
 export abstract class Hooks {
-  abstract enter: (work: Work, enterResult: unknown) => ExitResult;
-  abstract exit: (work: Work, exitResult: ExitStatus) => ExitResult;
+  abstract enter: (
+    work: EffectState,
+    enterResult: unknown,
+  ) => ExitResult;
+  abstract exit: (
+    work: EffectState,
+    exitResult: ExitStatus,
+  ) => ExitResult;
 }

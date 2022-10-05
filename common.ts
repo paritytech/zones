@@ -21,6 +21,9 @@ export type E<U> = U extends EffectLike<boolean, any, infer E, any> ? E : never;
 export type T<U> = U extends EffectLike<boolean, any, Error, infer T> ? T : U;
 
 export type Collection$<C> = { [K in keyof C]: $<C[K]> };
+export type List$<C> = {
+  [K in keyof C]: K extends `${number}` ? $<C[K]> : C[K];
+};
 export type CollectionT<C> = { [K in keyof C]: T<C[K]> };
 
 export type ExitStatus = void | Error;

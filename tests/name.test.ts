@@ -23,7 +23,7 @@ Deno.test("name", () => {
   const a = new A();
   const b = new B(a);
   const trace = Z.trace();
-  const run = Z.runtime({ hooks: [trace] });
+  const { run } = new Z.Runtime({ hooks: [trace] });
   run(b);
   Z.assertTrace(
     trace,

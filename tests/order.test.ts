@@ -111,6 +111,6 @@ Deno.test("Order", async (t) => {
 
 function setup() {
   const trace = Z.trace();
-  const run = Z.runtime({ hooks: [trace] });
+  const { run } = new Z.Runtime({ hooks: [trace] });
   return { run, trace };
 }

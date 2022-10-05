@@ -1,6 +1,4 @@
-import { RuntimeContext } from "./Runtime.ts";
 import { Signature } from "./Signature.ts";
-import { Work } from "./Work.ts";
 
 declare const S_: unique symbol;
 declare const V_: unique symbol;
@@ -22,9 +20,6 @@ export abstract class Effect<
   declare [T_]: T;
 
   abstract id: EffectId;
-  abstract work: (context: RuntimeContext) => Work;
-
-  declare dependencies?: Set<AnyEffect>;
 }
 
 export type AnyEffect = Effect<boolean, any, Error, any>;

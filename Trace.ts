@@ -1,7 +1,7 @@
 import { ExitStatus } from "./common.ts";
 import { AnyEffect } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
-import { Work } from "./Work.ts";
+import { EffectState } from "./Process.ts";
 
 export function trace(): Trace {
   return new Trace();
@@ -9,18 +9,18 @@ export function trace(): Trace {
 export class Trace extends Hooks {
   elements: TraceElement[] = [];
 
-  enter = (work: Work, result: unknown): void => {
+  enter = ({ source }: EffectState, result: unknown): void => {
     this.elements.push({
       kind: "enter",
-      source: work.source,
+      source,
       result,
     });
   };
 
-  exit = (work: Work, result: ExitStatus): void => {
+  exit = ({ source }: EffectState, result: ExitStatus): void => {
     this.elements.push({
       kind: "exit",
-      source: work.source,
+      source,
       result,
     });
   };

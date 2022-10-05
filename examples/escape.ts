@@ -1,22 +1,22 @@
 import * as Z from "../mod.ts";
 
 const a = Z.atom([], () => {
-  console.log("enter a");
+  console.log("enter a", "HELLO");
   return "HELLO";
-}, () => {
-  console.log("exit a");
+}, (r) => {
+  console.log("exit a", r);
   return new SomeError();
 });
 
 const b = Z.atom([a], (a) => {
-  console.log("enter b");
+  console.log("enter b", a);
   return a;
-}, () => {
-  console.log("exit b");
+}, (r) => {
+  console.log("exit b", r);
 });
 
 class SomeError extends Error {}
 
-const run = Z.runtime();
+const { run } = new Z.Runtime();
 const result = run(b);
-console.log(result);
+// console.log(result);
