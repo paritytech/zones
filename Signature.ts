@@ -1,50 +1,46 @@
-import { isEffectLike } from "./common.ts";
+import { isEffectLike } from "./Effect.ts";
 import { MapLike } from "./util.ts";
 
 declare const signature_: unique symbol;
-export type Signature = string & { [signature_]: true };
+export type Signature = string & { [signature_]?: true };
 
 class SignatureFactory<T> {
   #i = 0;
 
   constructor(
     readonly type: string,
-    readonly container: MapLike<T, Signature>,
+    readonly container: MapLike<T, string>,
   ) {}
 
-  signature = (target: T): Signature => {
+  of = (target: T): string => {
     let signature = this.container.get(target);
     if (!signature) {
-      signature = `${this.type}(${this.#i++})` as Signature;
+      signature = `${this.type}(${this.#i++})`;
       this.container.set(target, signature);
     }
     return signature;
   };
 }
 
-const { signature: ref_ } = new SignatureFactory("ref", new WeakMap());
-const { signature: val_ } = new SignatureFactory("val", new Map());
+export const strongContainer = new Map();
+export const strong = new SignatureFactory("strong", strongContainer);
+export const weak = new SignatureFactory("weak", new WeakMap());
 
-export namespace sig {
-  export const ref = ref_;
-  export const val = val_;
-
-  export function unknown(target: unknown): Signature {
-    switch (typeof target) {
-      case "function": {
-        return ref(target as (...args: any[]) => any);
+export function of(target: unknown): Signature {
+  switch (typeof target) {
+    case "function": {
+      return weak.of(target as (...args: any[]) => any);
+    }
+    case "object": {
+      if (isEffectLike(target)) {
+        return target.id;
+      } else if (target === null) {
+        return "null" as Signature;
       }
-      case "object": {
-        if (isEffectLike(target)) {
-          return target.id;
-        } else if (target === null) {
-          return "null" as Signature;
-        }
-        return ref(target);
-      }
-      default: {
-        return val(target);
-      }
+      return weak.of(target);
+    }
+    default: {
+      return strong.of(target);
     }
   }
 }

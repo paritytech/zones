@@ -5,7 +5,7 @@ let generated = "";
 for await (
   const entry of fs.walk(".", {
     match: [/\.ts$/],
-    skip: [/^target\//],
+    skip: [/^target\//, /^_prev\//],
   })
 ) {
   generated += `import "./${entry.path}";\n`;

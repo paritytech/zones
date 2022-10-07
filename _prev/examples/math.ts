@@ -8,16 +8,17 @@ class AddZeroErr extends Error {
   override readonly name = "AddZero";
 }
 
-export const add = Z.atomf(function(
-  this: AddEnv,
-  a: number,
-  b: number,
-) {
-  if (a === 0 || b === 0) {
-    return new AddZeroErr();
-  }
-  return this.add(a, b);
-});
+function add<
+  A extends Z.$<number>,
+  B extends Z.$<number>,
+>(a: A, b: B) {
+  return new Z.Call(Z.list(a, b), function(this: AddEnv, [a, b]) {
+    if (a === 0 || b === 0) {
+      return new AddZeroErr();
+    }
+    return this.add(a, b);
+  }, undefined!);
+}
 
 const root = add(1, add(2, add(3, 4)));
 

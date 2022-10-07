@@ -8,9 +8,9 @@ class Add<A extends Z.$<number>, B extends Z.$<number>> extends Z.Name {
     readonly b: B,
   ) {
     super();
-    this.root = Z.atom([a, b], (a, b) => {
-      return a + b;
-    });
+    this.root = new Z.Call(Z.rec({ a, b }), (x) => {
+      return x.a + x.b;
+    }, undefined!);
   }
 }
 

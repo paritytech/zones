@@ -1,7 +1,7 @@
 import { ExitStatus } from "./common.ts";
 import { AnyEffect } from "./Effect.ts";
 import { Hooks } from "./Hooks.ts";
-import { EffectState } from "./Process.ts";
+import { EffectState } from "./Runtime.ts";
 
 export function trace(): Trace {
   return new Trace();

@@ -10,7 +10,7 @@
   "lint": {
     "files": {
       "exclude": ["target"],
-      "include": ["."]
+      "include": [".", "_prev"]
     },
     "rules": {
       "exclude": [
@@ -36,4 +36,3 @@
     "bench": "deno bench -A --no-check=remote --unstable"
   }
 }
-
