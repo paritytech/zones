@@ -7,4 +7,3 @@ export * from "./If.ts";
 export * from "./Ls.ts";
 export * from "./Rec.ts";
 export * from "./Try.ts";
-export * as unsafe from "./unsafe/mod.ts";

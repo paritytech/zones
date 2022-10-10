@@ -1,4 +1,4 @@
-import { ExitResult, matchResult } from "./common.ts";
+import { ExitResult, then } from "./common.ts";
 import { Placeholder } from "./Placeholder.ts";
 import { Process } from "./Run.ts";
 import * as sig from "./Signature.ts";
@@ -55,12 +55,12 @@ export abstract class EffectState<Source extends Effect = Effect> {
     readonly source: Source,
   ) {}
 
-  onOrphaned = (cb: () => ExitResult) => {
-    this.#orphanedCbs.add(cb);
-  };
-
   addDependent = (dependent: EffectState): void => {
     this.#dependents.add(dependent);
+  };
+
+  onOrphaned = (cb: () => ExitResult) => {
+    this.#orphanedCbs.add(cb);
   };
 
   removeDependent = (dependent: EffectState): ExitResult => {
@@ -74,7 +74,7 @@ export abstract class EffectState<Source extends Effect = Effect> {
       const pendingExits: Promise<unknown>[] = [];
       const orphanedCbs = [...this.#orphanedCbs.values()];
       for (let i = 0; i < orphanedCbs.length; i++) {
-        const pending = matchResult(
+        const pending = then(
           orphanedCbs[i]!(),
           identity,
           (instance) => {

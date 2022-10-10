@@ -20,8 +20,13 @@ function subtract<A extends Z.$<number>, B extends Z.$<number>>(a: A, b: B) {
   });
 }
 
-const run = Z.run();
+const root = Z.try(add(1, add(0, subtract(1, 10))), (err) => {
+  if (err instanceof AddingZeroError) {
+    return "Tried to add zero";
+  }
+  return err;
+});
 
-const result = run(add(1, add(2, subtract(1, 10))));
+const result = Z.run()(root);
 
 console.log(await result);

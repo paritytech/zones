@@ -2,12 +2,13 @@ import { identity } from "./util.ts";
 
 export type ExitResult = void | Error | Promise<void | Error>;
 
-export function matchResult<T, OR = void, ER = void>(
+/** Kind of like a `Promise`'s `then`, except that that it respects sync results */
+export function then<T, OR = void, ER = void>(
   result: T,
   useOk: (x: Exclude<Awaited<T>, Error>) => OR = identity as any,
   useErr: (x: Extract<Awaited<T>, Error>) => ER = identity as any,
 ): MatchResultResult<T, OR, ER> {
-  return result instanceof Error
+  return (result instanceof Error)
     ? useErr(result as any)
     : result instanceof Promise
     ? result.then((v) => (v instanceof Error ? useErr : useOk)(v))

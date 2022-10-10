@@ -1,4 +1,4 @@
-import { matchResult } from "../common.ts";
+import { then } from "../common.ts";
 import { $, E, Effect, EffectState, isEffectLike, T, V } from "../Effect.ts";
 import { Process } from "../Run.ts";
 
@@ -41,8 +41,8 @@ export class LsState extends EffectState<Ls> {
         const element = this.source.elements[i]!;
         if (isEffectLike(element)) {
           const elementState = this.process.get(element.id)!;
-          const result = matchResult(
-            matchResult(
+          const result = then(
+            then(
               elementState.getResult(),
               (ok) => {
                 elementsResolved[i] = ok;
@@ -62,7 +62,7 @@ export class LsState extends EffectState<Ls> {
           elementsResolved[i] = element;
         }
       }
-      this.result = matchResult(
+      this.result = then(
         pending.length ? Promise.all(pending) : undefined,
         () => {
           return errContainer?.instance || elementsResolved;

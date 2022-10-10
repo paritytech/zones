@@ -1,4 +1,4 @@
-import { ExitResult, matchResult } from "../common.ts";
+import { ExitResult, then } from "../common.ts";
 import { E, Effect, EffectLike, EffectState, T, V } from "../Effect.ts";
 import { Process } from "../Run.ts";
 
@@ -33,17 +33,21 @@ export type DropCb<
 export class DropState extends EffectState<Drop> {
   getResult = () => {
     if (!("result" in this)) {
-      this.onOrphaned(() => {
-        return matchResult(this.result, (ok) => {
-          return this.source.cb(ok);
+      if (!this.isRoot) {
+        this.onOrphaned(() => {
+          return then(this.result, (ok) => {
+            return this.source.cb(ok);
+          });
         });
-      });
+      }
       const scopeResult = this.process.get(this.source.scope.id)!.getResult();
-      this.result = matchResult(scopeResult, (ok) => {
-        return matchResult(this.source.cb(ok), () => {
-          return scopeResult;
-        });
-      });
+      this.result = this.isRoot
+        ? then(scopeResult, (ok) => {
+          return then(this.source.cb(ok), () => {
+            return scopeResult;
+          });
+        })
+        : scopeResult;
     }
     return this.result;
   };

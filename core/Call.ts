@@ -1,4 +1,4 @@
-import { matchResult, thrownAsUntypedError } from "../common.ts";
+import { then, thrownAsUntypedError } from "../common.ts";
 import { E, Effect, EffectState, isEffectLike, T, V } from "../Effect.ts";
 import { Process } from "../Run.ts";
 import { Ls, Ls$ } from "./Ls.ts";
@@ -40,10 +40,10 @@ export class CallState extends EffectState<Call> {
       const dep = isEffectLike(this.source.dep)
         ? this.process.get(this.source.dep.id)!.getResult()
         : this.source.dep;
-      this.result = matchResult(
-        matchResult(dep, thrownAsUntypedError(this.source.fn)),
+      this.result = then(
+        then(dep, thrownAsUntypedError(this.source.fn)),
         (result) => {
-          return matchResult(
+          return then(
             this.removeDependent(this.source.dep),
             (_) => result,
           );
