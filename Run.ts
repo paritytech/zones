@@ -23,16 +23,15 @@ export function run<GlobalApply extends PlaceholderApplied[]>(
   props?: RunProps<GlobalApply>,
 ): Run<GlobalApply> {
   return (root: EffectLike, apply) => {
-    const p = new Process(props, apply);
-    const rootState = p.ensureStates(root)!;
+    const process = new Process(props, apply);
+    const rootState = process.ensureStates(root)!;
+    rootState.isRoot = true;
     return rootState.getResult() as any;
   };
 }
 
 export interface Run<GlobalApplies extends PlaceholderApplied[]> {
-  <
-    Root extends EffectLike,
-  >(
+  <Root extends EffectLike>(
     root: Root,
     apply?: PlaceholderApplied<
       Exclude<V<Root>, GlobalApplies[number]["placeholder"]>

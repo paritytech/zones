@@ -13,3 +13,10 @@ export type ValueOf<T> = T[keyof T];
 export function identity<T>(val: T): T {
   return val;
 }
+
+export function throwIfError<T>(value: T): Exclude<T, Error> {
+  if (value instanceof Error) {
+    throw value;
+  }
+  return value as Exclude<T, Error>;
+}

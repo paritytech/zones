@@ -38,7 +38,12 @@ export class DropState extends EffectState<Drop> {
           return this.source.cb(ok);
         });
       });
-      this.result = this.process.get(this.source.scope.id)!.getResult();
+      const scopeResult = this.process.get(this.source.scope.id)!.getResult();
+      this.result = matchResult(scopeResult, (ok) => {
+        return matchResult(this.source.cb(ok), () => {
+          return scopeResult;
+        });
+      });
     }
     return this.result;
   };

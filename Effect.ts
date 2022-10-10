@@ -45,6 +45,7 @@ export abstract class Effect<
 
 export abstract class EffectState<Source extends Effect = Effect> {
   declare result?: unknown;
+  declare isRoot?: true;
 
   #dependents = new Set<EffectState>();
   #orphanedCbs = new Set<() => ExitResult>();
@@ -64,6 +65,10 @@ export abstract class EffectState<Source extends Effect = Effect> {
 
   removeDependent = (dependent: EffectState): ExitResult => {
     this.#dependents.delete(dependent);
+    return this.runOrphanedCbs();
+  };
+
+  runOrphanedCbs = (): ExitResult => {
     if (!this.#dependents.size) {
       let err: undefined | { instance: Error; i: number };
       const pendingExits: Promise<unknown>[] = [];
