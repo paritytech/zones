@@ -1,41 +1,27 @@
 const placeholder_ = Symbol();
-const placeholderApplied_ = Symbol();
 
-export function placeholder<T>() {
+export function _<T>() {
   return <Key extends PropertyKey>(key: Key): Placeholder<Key, T> => {
-    return Object.assign((value: T) => {
-      return {
-        [placeholderApplied_]: true,
-        key,
-        value,
-      };
-    }, {
-      [placeholder_]: true,
-      key,
-    }) as Placeholder<Key, T>;
+    const placeholder = Object.assign((value: T) => {
+      return { placeholder, value };
+    }, { [placeholder_]: true as const, key });
+    return placeholder as any;
   };
 }
-export { placeholder as _ };
 
-export interface Placeholder<
-  Key extends PropertyKey = PropertyKey,
-  T = any,
-> {
+export interface Placeholder<Key extends PropertyKey = PropertyKey, T = any> {
   [placeholder_]: true;
   key: Key;
-  (value: T): PlaceholderApplied<Key, T>;
-}
-export interface PlaceholderApplied<
-  Key extends PropertyKey = PropertyKey,
-  T = any,
-> {
-  [placeholderApplied_]: true;
-  key: Key;
-  value: T;
+  (value: T): PlaceholderApplied<this>;
 }
 
 export function isPlaceholder(
   inQuestion: unknown,
 ): inQuestion is Placeholder {
   return typeof inQuestion === "function" && placeholder_ in inQuestion;
+}
+
+export interface PlaceholderApplied<P extends Placeholder = Placeholder> {
+  placeholder: P;
+  value: ReturnType<P>;
 }

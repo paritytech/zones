@@ -12,7 +12,8 @@ await Promise.all([
     package: {
       name: "zones",
       version: Deno.args[0] || fail(),
-      description: "A tiny functional effect system",
+      description:
+        "A tiny functional effect system for TypeScript library developers",
       license: "Apache-2.0",
       repository: `github:paritytech/zones`,
     },

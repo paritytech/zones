@@ -1,19 +1,19 @@
-import { ExitResult } from "./common.ts";
+import { ExitResult, matchResult } from "./common.ts";
 import { Placeholder } from "./Placeholder.ts";
 import { Process } from "./Run.ts";
-import { Signature } from "./Signature.ts";
+import * as sig from "./Signature.ts";
+import { identity } from "./util.ts";
 
 declare const V_: unique symbol;
 declare const E_: unique symbol;
 declare const T_: unique symbol;
 
 declare const effectId: unique symbol;
-export type EffectId = Signature & { [effectId]?: true };
-
-export type EffectEnv<I = any> = Record<PropertyKey, Record<PropertyKey, I>>;
+export type EffectId = sig.Signature & { [effectId]?: true };
 
 export abstract class Effect<
-  V extends EffectEnv<unknown> = EffectEnv,
+  K extends string = string,
+  V extends Placeholder = Placeholder,
   E extends Error = Error,
   T = any,
 > {
@@ -21,26 +21,72 @@ export abstract class Effect<
   declare [E_]: E;
   declare [T_]: T;
 
-  abstract id: EffectId;
+  declare id: EffectId;
+  declare dependencies?: Set<EffectLike>;
+
+  constructor(
+    readonly kind: K,
+    readonly args?: unknown[],
+  ) {
+    args?.forEach((arg) => {
+      if (isEffectLike(arg)) {
+        if ("dependencies" in this) {
+          this.dependencies!.add(arg);
+        } else {
+          this.dependencies = new Set([arg]);
+        }
+      }
+    });
+    this.id = `${this.kind}(${this.args?.map(sig.of).join(",") || ""})`;
+  }
 
   abstract state: (process: Process) => EffectState;
 }
 
 export abstract class EffectState<Source extends Effect = Effect> {
-  dependents = new Set<EffectState>();
+  declare result?: unknown;
+
+  #dependents = new Set<EffectState>();
+  #orphanedCbs = new Set<() => ExitResult>();
 
   constructor(
     readonly process: Process,
     readonly source: Source,
   ) {}
 
-  abstract result: () => unknown;
-  abstract enter: () => unknown;
-  abstract exit: () => ExitResult;
-
-  resolvePlaceholder = (placeholder: Placeholder): unknown => {
-    return this.process.apply[placeholder.ns]?.[placeholder.key];
+  onOrphaned = (cb: () => ExitResult) => {
+    this.#orphanedCbs.add(cb);
   };
+
+  addDependent = (dependent: EffectState): void => {
+    this.#dependents.add(dependent);
+  };
+
+  removeDependent = (dependent: EffectState): ExitResult => {
+    this.#dependents.delete(dependent);
+    if (!this.#dependents.size) {
+      let err: undefined | { instance: Error; i: number };
+      const pendingExits: Promise<unknown>[] = [];
+      const orphanedCbs = [...this.#orphanedCbs.values()];
+      for (let i = 0; i < orphanedCbs.length; i++) {
+        const pending = matchResult(
+          orphanedCbs[i]!(),
+          identity,
+          (instance) => {
+            if (!err || i < err.i) {
+              err = { i, instance };
+            }
+          },
+        );
+        if (pending instanceof Promise) {
+          pendingExits.push(pending);
+        }
+      }
+      return err?.instance;
+    }
+  };
+
+  abstract getResult: () => unknown;
 }
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
@@ -52,19 +98,25 @@ export abstract class Name<Root extends EffectLike = EffectLike> {
 }
 
 export type EffectLike<
-  V extends EffectEnv<unknown> = EffectEnv,
+  V extends Placeholder = Placeholder,
   E extends Error = Error,
   T = any,
-> = Effect<V, E, T> | Name<EffectLike<V, E, T>>;
+> = Effect<string, V, E, T> | Name<EffectLike<V, E, T>>;
 
 export function isEffectLike(inQuestion: unknown): inQuestion is EffectLike {
   return inQuestion instanceof Effect || inQuestion instanceof Name;
 }
 
-export type V<U> = U extends EffectLike<infer V> ? V : never;
-export type E<U> = U extends EffectLike<EffectEnv, infer E> ? E : never;
-export type T<U> = U extends EffectLike<EffectEnv, Error, infer T> ? T
+export type V<U> = U extends EffectLike<infer V> ? V
+  : U extends Placeholder ? U
+  : never;
+export type E<U> = U extends EffectLike<Placeholder, infer E> ? E : never;
+// TODO: fully ensure no promises-wrappers/errors
+export type T<U> = U extends EffectLike<Placeholder, Error, infer T> ? T
   : U extends Placeholder<PropertyKey, infer T> ? T
-  : U;
+  : Exclude<Awaited<U>, Error>;
 
-export type $<T> = T | EffectLike<EffectEnv, Error, T>;
+export type $<T> =
+  | T
+  | EffectLike<Placeholder, Error, T>
+  | Placeholder<PropertyKey, T>;

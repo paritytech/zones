@@ -1,68 +1,49 @@
-import { RuneError } from "./common.ts";
+import { UntypedError } from "./common.ts";
 import {
   E,
   Effect,
-  EffectEnv,
   EffectId,
   EffectLike,
   EffectState,
   isEffectLike,
   Name,
   T,
+  V,
 } from "./Effect.ts";
-import { Call, Rec } from "./intrinsics/mod.ts";
 import { PlaceholderApplied } from "./Placeholder.ts";
 
-export interface RunProps {
-  apply?: PlaceholderApplied[]; // TODO(@tjjfvi): type-level repeat check
+export interface RunProps<
+  GlobalApplies extends PlaceholderApplied[] = PlaceholderApplied[],
+> {
+  apply?: GlobalApplies; // TODO(@tjjfvi): type-level repeat check
   hooks?: "TODO";
 }
 
-export function run(props?: RunProps): Run {
+export function run<GlobalApply extends PlaceholderApplied[]>(
+  props?: RunProps<GlobalApply>,
+): Run<GlobalApply> {
   return (root: EffectLike, apply) => {
-    const process = new Process(props, apply);
-    while (root instanceof Name) {
-      root = root.root;
-    }
-    const rootState = process.ensureState(root);
-    const instate: [source: EffectLike, parentState: EffectState][] = [];
-    pushChildren(root, rootState);
-    while (instate.length) {
-      const [currentSource, parentState] = instate.pop()!;
-      if (currentSource instanceof Name) {
-        instate.push([currentSource.root, parentState]);
-        continue;
-      } else {
-        const currentState = process.ensureState(currentSource);
-        currentState.dependents.add(parentState);
-        pushChildren(currentSource, currentState);
-      }
-    }
-    return rootState.result() as any;
-
-    function pushChildren(currentSource: Effect, currentState: EffectState) {
-      if (currentSource instanceof Call && isEffectLike(currentSource.dep)) {
-        instate.push([currentSource.dep, currentState]);
-      } else if (currentSource instanceof Rec) {
-        for (const value of currentSource.fields) {
-          if (isEffectLike(value)) {
-            instate.push([value, currentState]);
-          }
-        }
-      }
-    }
+    const p = new Process(props, apply);
+    const rootState = p.ensureStates(root)!;
+    return rootState.getResult() as any;
   };
 }
 
-export type Run = <Root extends EffectLike>(
-  root: Root,
-  apply: EffectEnv, /* TODO */
-) => Promise<E<Root> | UnexpectedInnerError | T<Root>>;
+export interface Run<GlobalApplies extends PlaceholderApplied[]> {
+  <
+    Root extends EffectLike,
+  >(
+    root: Root,
+    apply?: PlaceholderApplied<
+      Exclude<V<Root>, GlobalApplies[number]["placeholder"]>
+    >[], // TODO: ensure each placeholder is accounted for exactly once
+  ): Promise<E<Root> | UntypedError | T<Root>>;
+}
 
 export class Process extends Map<EffectId, EffectState> {
   constructor(
     readonly props: RunProps | undefined,
-    readonly apply: EffectEnv,
+    readonly apply: unknown, // TODO
   ) {
     super();
   }
@@ -75,14 +56,32 @@ export class Process extends Map<EffectId, EffectState> {
     }
     return state;
   };
-}
 
-const UNEXPECTED_INNER_ERROR = "UnexpectedInnerError";
-const UNEXPECTED_INNER_ERROR_MSG = "";
-export class UnexpectedInnerError
-  extends RuneError<typeof UNEXPECTED_INNER_ERROR>
-{
-  constructor() {
-    super(UNEXPECTED_INNER_ERROR, UNEXPECTED_INNER_ERROR_MSG);
-  }
+  ensureStates = (root: EffectLike): EffectState => {
+    while (root instanceof Name) {
+      root = root.root;
+    }
+    const rootState = this.ensureState(root);
+    const instate: [source: EffectLike, parentState: EffectState][] = [];
+    const pushChildren = (currentState: EffectState) => {
+      currentState.source.args?.forEach((arg) => {
+        if (isEffectLike(arg)) {
+          instate.push([arg, currentState]);
+        }
+      });
+    };
+    pushChildren(rootState);
+    while (instate.length) {
+      const [currentSource, parentState] = instate.pop()!;
+      if (currentSource instanceof Name) {
+        instate.push([currentSource.root, parentState]);
+        continue;
+      } else {
+        const currentState = this.ensureState(currentSource);
+        currentState.addDependent(parentState);
+        pushChildren(currentState);
+      }
+    }
+    return rootState;
+  };
 }

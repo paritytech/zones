@@ -1,57 +1,34 @@
 import * as Z from "../mod.ts";
 
-const factor_ = Symbol();
-export const factor = Z._<number>()(factor_);
-
-const run = Z.run({
-  apply: [factor(10)],
-});
-
-class AddingZeroError extends Error {}
-class SubtractingZeroError extends Error {}
-
+class AddingZeroError extends Error {
+  override readonly name = "AddingZeroError";
+}
 function add<A extends Z.$<number>, B extends Z.$<number>>(a: A, b: B) {
-  return Z.call(Z.ls(a, b), ([a, b]) => {
-    if (a === 0 || b === 0) {
-      return new AddingZeroError();
-    }
-    return a + b;
-  });
+  return Z.drop(
+    Z.call(Z.ls(a, b), ([a, b]) => {
+      console.log("A");
+      if (a === 0 || b === 0) return new AddingZeroError();
+      return a + b;
+    }),
+    (x) => {
+      console.log("B");
+    },
+  );
 }
 
-interface SubtractProps {
-  a: number;
-  b: number;
+class SubtractingZeroError extends Error {
+  override readonly name = "SubtractingZeroError";
 }
-function subtract<Props extends Z.Rec$<SubtractProps>>(props: Props) {
-  return Z.call(Z.rec(props), ({ a, b }) => {
-    if (b === 0) {
-      return new SubtractingZeroError();
-    }
+function subtract<A extends Z.$<number>, B extends Z.$<number>>(a: A, b: B) {
+  return Z.call(Z.ls(a, b), ([a, b]) => {
+    if (b === 0) return new SubtractingZeroError();
     return a - b;
   });
 }
 
-const rand = Z.call(factor, (f) => {
-  return f * Math.random();
-});
+const run = Z.run();
 
-const x = add(
-  1,
-  add(
-    2,
-    subtract({
-      a: rand,
-      b: subtract({ a: 4, b: 5 }),
-    }),
-  ),
-);
+const result = run(add(1, add(2, subtract(1, 10))));
+console.log(await result);
 
-const root = Z.try(x, (err) => {
-  if (err instanceof AddingZeroError) {
-    return "whatever";
-  }
-  return err;
-});
-
-run(root, undefined!);
+// console.log(result);
