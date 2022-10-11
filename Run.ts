@@ -1,4 +1,4 @@
-import { UntypedError } from "./common.ts";
+import { ExitResult, then, tryForEach, UntypedError } from "./common.ts";
 import {
   E,
   Effect,
@@ -25,7 +25,9 @@ export function run<GlobalApply extends PlaceholderApplied[]>(
     const process = new Process(props, apply);
     const rootState = process.ensureStates(root)!;
     rootState.isRoot = true;
-    return rootState.result as any;
+    const result = rootState.result;
+    rootState.exit();
+    return result as any;
   };
 }
 
@@ -39,8 +41,12 @@ export interface Run<GlobalApplies extends PlaceholderApplied[]> {
 }
 
 export class EffectRunState<E extends Effect = Effect> {
+  static YET_TO_RUN = Symbol();
+
   declare isRoot?: true;
-  declare runResult?: unknown;
+
+  #runResult: unknown = EffectRunState.YET_TO_RUN;
+  #exitCbs? = new Set<(resolved: unknown) => ExitResult>();
 
   dependents = new Set<EffectRunState>();
 
@@ -50,11 +56,47 @@ export class EffectRunState<E extends Effect = Effect> {
   ) {}
 
   get result(): unknown {
-    if (!("prev" in this)) {
-      this.runResult = this.source.run(this);
+    if (this.#runResult === EffectRunState.YET_TO_RUN) {
+      this.#runResult = then(this.source.run(this), (ok) => {
+        return this.source.dependencies
+          ? then(
+            tryForEach(
+              [...this.source.dependencies],
+              ({ id }) => {
+                const depState = this.process.get(id)!;
+                depState.dependents.delete(this);
+                if (!depState.dependents.size) {
+                  return depState.exit();
+                }
+              },
+            ),
+            () => ok,
+          )
+          : ok;
+      });
     }
-    return this.runResult;
+    return this.#runResult;
   }
+
+  exit = () => {
+    return then(this.result, (r) => {
+      if (this.#exitCbs) {
+        return then(
+          tryForEach([...this.#exitCbs.values()], (cb) => cb(r)),
+          () => r,
+        );
+      }
+      return r;
+    });
+  };
+
+  attachExitCb = (cb: (value: unknown) => ExitResult) => {
+    if (this.#exitCbs) {
+      this.#exitCbs.add(cb);
+    } else {
+      this.#exitCbs = new Set([cb]);
+    }
+  };
 }
 
 export class Process extends Map<EffectId, EffectRunState> {

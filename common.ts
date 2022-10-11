@@ -7,17 +7,16 @@ export function then<T, OR = void, ER = void>(
   result: T,
   useOk: (x: Exclude<Awaited<T>, Error>) => OR = identity as any,
   useErr: (x: Extract<Awaited<T>, Error>) => ER = identity as any,
-): ThenResult<T, OR, ER> {
+): SameSync<T, OR | ER> {
   return (result instanceof Error)
     ? useErr(result as any)
     : result instanceof Promise
     ? result.then((v) => (v instanceof Error ? useErr : useOk)(v))
     : useOk(result as any) as any;
 }
-export type ThenResult<T, OR, ER> = unknown extends T
-  ? OR | ER | Promise<OR | ER>
-  : T extends Promise<any> ? Promise<OR | ER>
-  : OR | ER;
+export type SameSync<T, U> = unknown extends T ? U | Promise<U>
+  : T extends Promise<any> ? Promise<U>
+  : U;
 
 export class RuneError<Name extends string> extends Error {
   override readonly name: `${Name}RuneError`;
@@ -28,6 +27,35 @@ export class RuneError<Name extends string> extends Error {
     super(message);
     this.name = `${name}RuneError`;
   }
+}
+
+export function tryForEach<T, R>(
+  elements: T[],
+  fn: (element: T) => R,
+): SameSync<R, R[] | Error> {
+  const elementsResolved = new Array<R>(elements.length);
+  const pending: Promise<void>[] = [];
+  let error: undefined | { instance: Error; i: number };
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i]!;
+    const elementResult = fn(element);
+    if (elementResult instanceof Promise) {
+      pending.push(elementResult.then((elementResolved) => {
+        if (elementResolved instanceof Error) {
+          if (!error || error.i > i) {
+            error = { instance: elementResolved, i };
+          }
+        } else {
+          elementsResolved[i] = elementResolved;
+        }
+      }));
+    }
+  }
+  return (pending.length
+    ? Promise.all(pending).then(() => error?.instance || elementsResolved)
+    : error
+    ? error.instance
+    : elementsResolved) as SameSync<R, R[] | Error>;
 }
 
 export class UntypedError extends RuneError<"Untyped"> {

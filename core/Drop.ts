@@ -25,27 +25,7 @@ export type DropCb<
   ExitR extends ExitResult = ExitResult,
 > = (scopeResolved: T<Scope>) => ExitR;
 
-const dropRun: EffectRun<Drop> = ({ process, source }) => {};
-
-// export class DropState extends EffectState<Drop> {
-//   getResult = () => {
-//     if (!("result" in this)) {
-//       if (!this.isRoot) {
-//         this.onOrphaned(() => {
-//           return then(this.result, (ok) => {
-//             return this.source.cb(ok);
-//           });
-//         });
-//       }
-//       const scopeResult = this.process.get(this.source.scope.id)!.getResult();
-//       this.result = this.isRoot
-//         ? then(scopeResult, (ok) => {
-//           return then(this.source.cb(ok), () => {
-//             return scopeResult;
-//           });
-//         })
-//         : scopeResult;
-//     }
-//     return this.result;
-//   };
-// }
+const dropRun: EffectRun<Drop> = (props) => {
+  props.attachExitCb(props.source.cb);
+  return props.process.get(props.source.scope.id)!.result;
+};
