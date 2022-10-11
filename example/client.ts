@@ -1,4 +1,5 @@
 import * as Z from "../mod.ts";
+import * as U from "../util/mod.ts";
 
 class ClientConnectError extends Error {
   override readonly name = "ClientConnectError";
@@ -31,4 +32,4 @@ const root = client("wss://rpc.polkadot.io");
 
 const result = await Z.run()(root);
 
-console.log(Z.throwIfError(result));
+console.log(U.throwIfError(result));

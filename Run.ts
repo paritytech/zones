@@ -9,7 +9,7 @@ import {
   V,
 } from "./Effect.ts";
 import { PlaceholderApplied } from "./Placeholder.ts";
-import { then, tryForEach, UntypedError } from "./util.ts";
+import { then, tryForEach, UntypedError } from "./util/mod.ts";
 
 export interface RunProps<
   GlobalApplies extends PlaceholderApplied[] = PlaceholderApplied[],
@@ -78,10 +78,6 @@ export class Process extends Map<EffectId, RunState> {
   ) {
     super();
   }
-
-  result = (id: EffectId): unknown => {
-    return this.get(id)!.result;
-  };
 
   ensureState = (source: Effect): RunState => {
     let state = this.get(source.id);

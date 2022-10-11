@@ -7,7 +7,7 @@ import {
   T,
   V,
 } from "../Effect.ts";
-import { ExitResult } from "../util.ts";
+import { ExitResult } from "../util/mod.ts";
 
 export function drop<S extends EffectLike, R extends ExitResult>(
   scope: S,

@@ -1,5 +1,5 @@
 import { Placeholder, PlaceholderApplied } from "../../Placeholder.ts";
-import * as U from "../../util.ts";
+import * as U from "../../util/mod.ts";
 import * as c from "./common.ts";
 
 export type DisallowOverrides<T extends PlaceholderApplied[]> = {

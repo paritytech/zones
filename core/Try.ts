@@ -1,5 +1,5 @@
 import { E, Effect, EffectLike, EffectRun, T, V } from "../Effect.ts";
-import { identity, then } from "../util.ts";
+import { identity, then } from "../util/mod.ts";
 
 export function try_<
   Attempt extends EffectLike,
@@ -32,7 +32,7 @@ export class Try<Attempt extends EffectLike = EffectLike, FallbackR = any>
   }
 
   enter: EffectRun = ({ process }) => {
-    return then(process.result(this.attempt.id), identity, this.fallback);
+    return then(process.get(this.attempt.id)!.result, identity, this.fallback);
   };
 }
 

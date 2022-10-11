@@ -1,5 +1,5 @@
 import { $, E, Effect, EffectRun, isEffectLike, T, V } from "../Effect.ts";
-import { then } from "../util.ts";
+import { then } from "../util/mod.ts";
 
 export function ls<Elements extends unknown[]>(
   ...elements: Elements

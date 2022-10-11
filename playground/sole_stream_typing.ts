@@ -1,4 +1,4 @@
-import { U2I } from "../util.ts";
+import { U2I } from "../util/mod.ts";
 import { Stream } from "./Stream.ts";
 
 declare const multipleStreamsError_: unique symbol;

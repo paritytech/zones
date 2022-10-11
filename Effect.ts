@@ -1,7 +1,7 @@
 import { Placeholder } from "./Placeholder.ts";
 import { RunState } from "./Run.ts";
 import * as sig from "./Signature.ts";
-import { ExitResult } from "./util.ts";
+import { ExitResult } from "./util/mod.ts";
 
 declare const V_: unique symbol;
 declare const E_: unique symbol;
@@ -20,8 +20,8 @@ export abstract class Effect<
   declare [E_]: E;
   declare [T_]: T;
 
-  declare id: EffectId;
-  declare dependencies?: Set<EffectLike>;
+  id;
+  dependencies = new Set<EffectLike>();
 
   constructor(
     readonly kind: K,
@@ -29,17 +29,16 @@ export abstract class Effect<
   ) {
     args?.forEach((arg) => {
       if (isEffectLike(arg)) {
-        if ("dependencies" in this) {
-          this.dependencies!.add(arg);
-        } else {
-          this.dependencies = new Set([arg]);
-        }
+        this.dependencies.add(arg);
       }
     });
-    this.id = `${this.kind}(${this.args?.map(sig.of).join(",") || ""})`;
+    this.id = `${this.kind}(${
+      this.args?.map(sig.of).join(",") || ""
+    })` as EffectId;
   }
 
   abstract enter: EffectRun;
+
   declare exit?: EffectExit;
 }
 

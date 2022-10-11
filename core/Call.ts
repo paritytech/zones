@@ -1,5 +1,5 @@
 import { E, Effect, EffectRun, isEffectLike, T, V } from "../Effect.ts";
-import { then, thrownAsUntypedError } from "../util.ts";
+import { then, thrownAsUntypedError } from "../util/mod.ts";
 import { Ls, Ls$ } from "./Ls.ts";
 
 export function call<D, R>(dep: D, fn: CallLogic<D, R>): Call<D, R> {

@@ -1,5 +1,5 @@
 import { E, Effect, EffectRun, T as T_, V } from "../Effect.ts";
-import { ExitResult } from "../util.ts";
+import { ExitResult } from "../util/mod.ts";
 
 export function stream<T>() {
   return <A, R extends ExitResult>(
