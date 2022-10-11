@@ -1,4 +1,3 @@
-import { ExitResult, then, tryForEach, UntypedError } from "./common.ts";
 import {
   E,
   Effect,
@@ -10,6 +9,7 @@ import {
   V,
 } from "./Effect.ts";
 import { PlaceholderApplied } from "./Placeholder.ts";
+import { then, tryForEach, UntypedError } from "./util.ts";
 
 export interface RunProps<
   GlobalApplies extends PlaceholderApplied[] = PlaceholderApplied[],
@@ -25,9 +25,7 @@ export function run<GlobalApply extends PlaceholderApplied[]>(
     const process = new Process(props, apply);
     const rootState = process.ensureStates(root)!;
     rootState.isRoot = true;
-    const result = rootState.result;
-    rootState.exit();
-    return result as any;
+    return rootState.result as any;
   };
 }
 
@@ -40,66 +38,40 @@ export interface Run<GlobalApplies extends PlaceholderApplied[]> {
   ): Promise<E<Root> | UntypedError | T<Root>>;
 }
 
-export class EffectRunState<E extends Effect = Effect> {
+export class RunState {
   static YET_TO_RUN = Symbol();
 
   declare isRoot?: true;
 
-  #runResult: unknown = EffectRunState.YET_TO_RUN;
-  #exitCbs? = new Set<(resolved: unknown) => ExitResult>();
+  #runResult: unknown = RunState.YET_TO_RUN;
 
-  dependents = new Set<EffectRunState>();
+  dependents = new Set<RunState>();
 
   constructor(
     readonly process: Process,
-    readonly source: E,
+    readonly source: Effect,
   ) {}
 
   get result(): unknown {
-    if (this.#runResult === EffectRunState.YET_TO_RUN) {
-      this.#runResult = then(this.source.run(this), (ok) => {
-        return this.source.dependencies
-          ? then(
-            tryForEach(
-              [...this.source.dependencies],
-              ({ id }) => {
-                const depState = this.process.get(id)!;
-                depState.dependents.delete(this);
-                if (!depState.dependents.size) {
-                  return depState.exit();
-                }
-              },
-            ),
-            () => ok,
-          )
-          : ok;
+    if (this.#runResult === RunState.YET_TO_RUN) {
+      this.#runResult = then(this.source.enter(this), (ok) => {
+        if (this.source.dependencies) {
+          tryForEach([...this.source.dependencies.values()], ({ id }) => {
+            const depState = this.process.get(id)!;
+            depState.dependents.delete(this);
+            if (!depState.dependents.size) {
+              console.log(depState.source.id);
+            }
+          });
+        }
+        return ok;
       });
     }
     return this.#runResult;
   }
-
-  exit = () => {
-    return then(this.result, (r) => {
-      if (this.#exitCbs) {
-        return then(
-          tryForEach([...this.#exitCbs.values()], (cb) => cb(r)),
-          () => r,
-        );
-      }
-      return r;
-    });
-  };
-
-  attachExitCb = (cb: (value: unknown) => ExitResult) => {
-    if (this.#exitCbs) {
-      this.#exitCbs.add(cb);
-    } else {
-      this.#exitCbs = new Set([cb]);
-    }
-  };
 }
 
-export class Process extends Map<EffectId, EffectRunState> {
+export class Process extends Map<EffectId, RunState> {
   constructor(
     readonly props: RunProps | undefined,
     readonly apply: unknown, // TODO
@@ -111,22 +83,22 @@ export class Process extends Map<EffectId, EffectRunState> {
     return this.get(id)!.result;
   };
 
-  ensureState = (source: Effect): EffectRunState => {
+  ensureState = (source: Effect): RunState => {
     let state = this.get(source.id);
     if (!state) {
-      state = new EffectRunState(this, source);
+      state = new RunState(this, source);
       this.set(source.id, state);
     }
     return state;
   };
 
-  ensureStates = (root: EffectLike): EffectRunState => {
+  ensureStates = (root: EffectLike): RunState => {
     while (root instanceof Name) {
       root = root.root;
     }
     const rootState = this.ensureState(root);
-    const instate: [source: EffectLike, parentState: EffectRunState][] = [];
-    const pushChildren = (currentState: EffectRunState) => {
+    const instate: [source: EffectLike, parentState: RunState][] = [];
+    const pushChildren = (currentState: RunState) => {
       currentState.source.args?.forEach((arg) => {
         if (isEffectLike(arg)) {
           instate.push([arg, currentState]);

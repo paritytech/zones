@@ -21,8 +21,10 @@ export class Derive<Target = any, UseResult extends EffectLike = EffectLike>
     readonly from: Target,
     readonly into: DeriveInto<Target, UseResult>,
   ) {
-    super("Derive", deriveRun, [from, into]);
+    super("Derive", [from, into]);
   }
+
+  enter: EffectRun = () => {};
 }
 
 export type DeriveResult = Error | EffectLike | Promise<Error | EffectLike>;
@@ -30,5 +32,3 @@ export type DeriveResult = Error | EffectLike | Promise<Error | EffectLike>;
 export type DeriveInto<Target, UseR extends DeriveResult> = (
   resolved: T<Target>,
 ) => UseR;
-
-const deriveRun: EffectRun<Derive> = () => {};

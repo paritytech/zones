@@ -1,5 +1,13 @@
-import { ExitResult } from "../common.ts";
-import { E, Effect, EffectLike, EffectRun, T, V } from "../Effect.ts";
+import {
+  E,
+  Effect,
+  EffectExit,
+  EffectLike,
+  EffectRun,
+  T,
+  V,
+} from "../Effect.ts";
+import { ExitResult } from "../util.ts";
 
 export function drop<S extends EffectLike, R extends ExitResult>(
   scope: S,
@@ -16,16 +24,19 @@ export class Drop<
     readonly scope: S,
     readonly cb: DropCb<S, R>,
   ) {
-    super("Drop", dropRun, [scope, cb]);
+    super("Drop", [scope, cb]);
   }
+
+  enter: EffectRun = ({ process }) => {
+    return process.get(this.scope.id)!.result;
+  };
+
+  override exit: EffectExit = ({ result }) => {
+    this.cb(result as T<S>);
+  };
 }
 
 export type DropCb<
   Scope extends EffectLike = EffectLike,
   ExitR extends ExitResult = ExitResult,
 > = (scopeResolved: T<Scope>) => ExitR;
-
-const dropRun: EffectRun<Drop> = (props) => {
-  props.attachExitCb(props.source.cb);
-  return props.process.get(props.source.scope.id)!.result;
-};

@@ -1,5 +1,5 @@
-import { ExitResult } from "../common.ts";
 import { E, Effect, EffectRun, T as T_, V } from "../Effect.ts";
+import { ExitResult } from "../util.ts";
 
 export function stream<T>() {
   return <A, R extends ExitResult>(
@@ -17,8 +17,10 @@ export class Stream<T = any, A = any, R extends ExitResult = ExitResult>
     readonly arg: A,
     readonly streamControllerFactory: StreamControllerFactory<T, A, R>,
   ) {
-    super("Stream", runStream, [arg, streamControllerFactory]);
+    super("Stream", [arg, streamControllerFactory]);
   }
+
+  enter: EffectRun = () => {};
 }
 
 export type StreamControllerFactory<T, A, OpenR extends ExitResult> = (
@@ -28,5 +30,3 @@ export interface StreamController<T, OpenR extends ExitResult> {
   open(push: (value: T) => void): OpenR;
   close: () => void;
 }
-
-const runStream: EffectRun<Stream> = () => {};

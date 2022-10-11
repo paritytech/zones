@@ -15,20 +15,18 @@ export class Rec<
   RecT<Fields>
 > {
   constructor(readonly fields: Fields) {
-    super("Rec", runRec, Object.values(fields));
+    super("Rec", Object.values(fields));
     // // TODO
     // this.inner = Object
     //   .entries(fields)
     //   .map(([k, v]) => `${sig.strong.of(k)}:${sig.of(v)}`)
     //   .join(",");
   }
+
+  enter: EffectRun = () => {};
 }
 
 export type Rec$<Fields> = { [K in keyof Fields]: $<Fields[K]> };
 export type RecT<Fields extends Record<PropertyKey, unknown>> = {
   [K in keyof Fields]: T<Fields[K]>;
-};
-
-const runRec: EffectRun<Rec> = ({ source }) => {
-  //
 };

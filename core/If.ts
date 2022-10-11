@@ -24,8 +24,8 @@ export class If<
     readonly then: Then,
     readonly else_: Else,
   ) {
-    super("If", runIf, [condition, then, else_]);
+    super("If", [condition, then, else_]);
   }
-}
 
-const runIf: EffectRun<If> = ({ process, source }) => {};
+  enter: EffectRun = () => {};
+}

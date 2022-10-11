@@ -1,9 +1,7 @@
-import { then } from "../common.ts";
 import { E, Effect, EffectLike, EffectRun, T, V } from "../Effect.ts";
-import { identity } from "../util.ts";
+import { identity, then } from "../util.ts";
 
-export { try_ as try };
-function try_<
+export function try_<
   Attempt extends EffectLike,
   FallbackR,
 >(
@@ -12,6 +10,11 @@ function try_<
 ): Try<Attempt, FallbackR> {
   return new Try(attempt, fallback);
 }
+Object.defineProperty(try_, "name", {
+  value: "try",
+  writable: false,
+});
+export { try_ as try };
 
 export class Try<Attempt extends EffectLike = EffectLike, FallbackR = any>
   extends Effect<
@@ -25,14 +28,15 @@ export class Try<Attempt extends EffectLike = EffectLike, FallbackR = any>
     readonly attempt: Attempt,
     readonly fallback: Catch<Attempt, FallbackR>,
   ) {
-    super("Try", tryRun, [attempt, fallback]);
+    super("Try", [attempt, fallback]);
   }
+
+  enter: EffectRun = ({ process }) => {
+    return then(process.result(this.attempt.id), identity, this.fallback);
+  };
 }
 
-export type Catch<Target extends EffectLike, CatchR> = (
-  attemptError: E<Target>,
-) => CatchR;
-
-const tryRun: EffectRun<Try> = ({ process, source }) => {
-  return then(process.result(source.attempt.id), identity, source.fallback);
-};
+export type Catch<
+  Target extends EffectLike,
+  CatchR,
+> = (attemptError: E<Target>) => CatchR;

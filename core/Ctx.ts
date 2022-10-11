@@ -13,11 +13,11 @@ export class Ctx<T extends unknown = any, Scope extends unknown = any>
     readonly init: () => T,
     readonly scope: Scope,
   ) {
-    super("Ctx", runCtx, [init, scope]);
+    super("Ctx", [init, scope]);
   }
-}
 
-const runCtx: EffectRun<Ctx> = ({ process, source }) => {
-  // TODO: scoping
-  return source.init();
-};
+  enter: EffectRun = () => {
+    // TODO: scoping
+    return this.init();
+  };
+}

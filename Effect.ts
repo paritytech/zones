@@ -1,6 +1,7 @@
 import { Placeholder } from "./Placeholder.ts";
-import { EffectRunState, Process } from "./Run.ts";
+import { RunState } from "./Run.ts";
 import * as sig from "./Signature.ts";
+import { ExitResult } from "./util.ts";
 
 declare const V_: unique symbol;
 declare const E_: unique symbol;
@@ -24,7 +25,6 @@ export abstract class Effect<
 
   constructor(
     readonly kind: K,
-    readonly run: EffectRun,
     readonly args?: unknown[],
   ) {
     args?.forEach((arg) => {
@@ -38,11 +38,13 @@ export abstract class Effect<
     });
     this.id = `${this.kind}(${this.args?.map(sig.of).join(",") || ""})`;
   }
+
+  abstract enter: EffectRun;
+  declare exit?: EffectExit;
 }
 
-export type EffectRun<E extends Effect = any> = (
-  currentState: EffectRunState<E>,
-) => unknown;
+export type EffectRun<R = any> = (state: RunState) => R;
+export type EffectExit = EffectRun<ExitResult>;
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
   abstract root: Root;

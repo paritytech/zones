@@ -1,5 +1,5 @@
-import { then, thrownAsUntypedError } from "../common.ts";
 import { E, Effect, EffectRun, isEffectLike, T, V } from "../Effect.ts";
+import { then, thrownAsUntypedError } from "../util.ts";
 import { Ls, Ls$ } from "./Ls.ts";
 
 export function call<D, R>(dep: D, fn: CallLogic<D, R>): Call<D, R> {
@@ -26,17 +26,17 @@ export class Call<D = any, R = any> extends Effect<
     readonly dep: D,
     readonly logic: CallLogic<D, R>,
   ) {
-    super("Call", callRun, [dep, logic]);
+    super("Call", [dep, logic]);
   }
+
+  enter: EffectRun = (state) => {
+    return then(
+      isEffectLike(this.dep)
+        ? state.process.get(this.dep.id)!.result
+        : this.dep,
+      thrownAsUntypedError(this.logic),
+    );
+  };
 }
 
 export type CallLogic<D, R> = (depResolved: T<D>) => R;
-
-const callRun: EffectRun<Call> = ({ process, source }) => {
-  return then(
-    isEffectLike(source.dep)
-      ? process.get(source.dep.id)!.result
-      : source.dep,
-    thrownAsUntypedError(source.logic),
-  );
-};

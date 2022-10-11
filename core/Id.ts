@@ -10,10 +10,10 @@ export class Id<Scope extends unknown = any>
   extends Effect<"Id", V<Scope>, E<Scope>, string>
 {
   constructor(readonly scope: Scope) {
-    super("Id", runId, [scope]);
+    super("Id", [scope]);
   }
-}
 
-const runId: EffectRun<Id> = ({ process, source }) => {
-  return source.id;
-};
+  enter: EffectRun = () => {
+    return this.id;
+  };
+}
