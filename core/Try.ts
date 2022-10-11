@@ -1,6 +1,5 @@
 import { then } from "../common.ts";
-import { E, Effect, EffectLike, EffectState, T, V } from "../Effect.ts";
-import { Process } from "../Run.ts";
+import { E, Effect, EffectLike, EffectRun, T, V } from "../Effect.ts";
 import { identity } from "../util.ts";
 
 export { try_ as try };
@@ -26,31 +25,14 @@ export class Try<Attempt extends EffectLike = EffectLike, FallbackR = any>
     readonly attempt: Attempt,
     readonly fallback: Catch<Attempt, FallbackR>,
   ) {
-    super("Try", [attempt, fallback]);
+    super("Try", tryRun, [attempt, fallback]);
   }
-
-  state = (process: Process): TryState => {
-    return new TryState(process, this);
-  };
 }
 
 export type Catch<Target extends EffectLike, CatchR> = (
   attemptError: E<Target>,
 ) => CatchR;
 
-export class TryState extends EffectState<Try> {
-  getResult = () => {
-    if (!("result" in this)) {
-      const attemptState = this.process.get(this.source.attempt.id)!;
-      const attemptResult = attemptState.getResult();
-      this.result = then(
-        then(attemptResult, identity, this.source.fallback),
-        (x) => {
-          this.removeDependent(attemptState);
-          return x;
-        },
-      );
-    }
-    return this.result;
-  };
-}
+const tryRun: EffectRun<Try> = ({ process, source }) => {
+  return then(process.result(source.attempt.id), identity, source.fallback);
+};

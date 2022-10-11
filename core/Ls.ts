@@ -1,6 +1,5 @@
 import { then } from "../common.ts";
-import { $, E, Effect, EffectState, isEffectLike, T, V } from "../Effect.ts";
-import { Process } from "../Run.ts";
+import { $, E, Effect, EffectRun, isEffectLike, T, V } from "../Effect.ts";
 
 export function ls<Elements extends unknown[]>(
   ...elements: Elements
@@ -14,13 +13,9 @@ export class Ls<Elements extends unknown[] = any[]>
   elements;
 
   constructor(...elements: Elements) {
-    super("Ls", elements);
+    super("Ls", lsRun, elements);
     this.elements = elements;
   }
-
-  state = (process: Process): LsState => {
-    return new LsState(process, this);
-  };
 }
 
 export type Ls$<Elements> = {
@@ -31,44 +26,26 @@ export type LsT<Elements extends unknown[]> = {
   [K in keyof Elements]: T<Elements[K]>;
 };
 
-export class LsState extends EffectState<Ls> {
-  getResult = () => {
-    if (!("result" in this)) {
-      const pending: Promise<unknown>[] = [];
-      const elementsResolved = new Array(this.source.elements.length);
-      let errContainer: undefined | { instance: Error; i: number };
-      for (let i = 0; i < this.source.elements.length; i++) {
-        const element = this.source.elements[i]!;
-        if (isEffectLike(element)) {
-          const elementState = this.process.get(element.id)!;
-          const result = then(
-            then(
-              elementState.getResult(),
-              (ok) => {
-                elementsResolved[i] = ok;
-              },
-              (err) => {
-                errContainer = { instance: err, i };
-              },
-            ),
-            () => {
-              return elementState.removeDependent(this);
-            },
-          );
-          if (result instanceof Promise) {
-            pending.push(result);
-          }
-        } else {
-          elementsResolved[i] = element;
-        }
+const lsRun: EffectRun<Ls> = ({ process, source: { elements } }) => {
+  const pending: Promise<unknown>[] = [];
+  const elementsResolved = new Array(elements.length);
+  let errorContainer: undefined | { instance: Error; i: number };
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i]!;
+    if (isEffectLike(element)) {
+      const result = then(process.get(element.id)!.result, (ok) => {
+        elementsResolved[i] = ok;
+      }, (err) => {
+        errorContainer = { instance: err, i };
+      });
+      if (result instanceof Promise) {
+        pending.push(result);
       }
-      this.result = then(
-        pending.length ? Promise.all(pending) : undefined,
-        () => {
-          return errContainer?.instance || elementsResolved;
-        },
-      );
+    } else {
+      elementsResolved[i] = element;
     }
-    return this.result;
-  };
-}
+  }
+  return then(pending.length ? Promise.all(pending) : undefined, () => {
+    return errorContainer?.instance || elementsResolved;
+  });
+};

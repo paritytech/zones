@@ -1,5 +1,4 @@
-import { $, E, Effect, EffectState, T, V } from "../Effect.ts";
-import { Process } from "../Run.ts";
+import { $, E, Effect, EffectRun, T, V } from "../Effect.ts";
 
 export { if_ as if };
 function if_<Condition extends $<boolean>, Then, Else = void>(
@@ -25,14 +24,8 @@ export class If<
     readonly then: Then,
     readonly else_: Else,
   ) {
-    super("If", [condition, then, else_]);
+    super("If", runIf, [condition, then, else_]);
   }
-
-  state = (process: Process): IfState => {
-    return new IfState(process, this);
-  };
 }
 
-export class IfState extends EffectState<If> {
-  getResult = () => {};
-}
+const runIf: EffectRun<If> = ({ process, source }) => {};

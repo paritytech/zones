@@ -7,15 +7,16 @@ export function then<T, OR = void, ER = void>(
   result: T,
   useOk: (x: Exclude<Awaited<T>, Error>) => OR = identity as any,
   useErr: (x: Extract<Awaited<T>, Error>) => ER = identity as any,
-): MatchResultResult<T, OR, ER> {
+): ThenResult<T, OR, ER> {
   return (result instanceof Error)
     ? useErr(result as any)
     : result instanceof Promise
     ? result.then((v) => (v instanceof Error ? useErr : useOk)(v))
     : useOk(result as any) as any;
 }
-export type MatchResultResult<T, OR, ER> = T extends Promise<any>
-  ? Promise<Awaited<OR | ER>>
+export type ThenResult<T, OR, ER> = unknown extends T
+  ? OR | ER | Promise<OR | ER>
+  : T extends Promise<any> ? Promise<OR | ER>
   : OR | ER;
 
 export class RuneError<Name extends string> extends Error {

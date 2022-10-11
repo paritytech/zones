@@ -4,7 +4,6 @@ import {
   Effect,
   EffectId,
   EffectLike,
-  EffectState,
   isEffectLike,
   Name,
   T,
@@ -26,7 +25,7 @@ export function run<GlobalApply extends PlaceholderApplied[]>(
     const process = new Process(props, apply);
     const rootState = process.ensureStates(root)!;
     rootState.isRoot = true;
-    return rootState.getResult() as any;
+    return rootState.result as any;
   };
 }
 
@@ -39,7 +38,26 @@ export interface Run<GlobalApplies extends PlaceholderApplied[]> {
   ): Promise<E<Root> | UntypedError | T<Root>>;
 }
 
-export class Process extends Map<EffectId, EffectState> {
+export class EffectRunState<E extends Effect = Effect> {
+  declare isRoot?: true;
+  declare runResult?: unknown;
+
+  dependents = new Set<EffectRunState>();
+
+  constructor(
+    readonly process: Process,
+    readonly source: E,
+  ) {}
+
+  get result(): unknown {
+    if (!("prev" in this)) {
+      this.runResult = this.source.run(this);
+    }
+    return this.runResult;
+  }
+}
+
+export class Process extends Map<EffectId, EffectRunState> {
   constructor(
     readonly props: RunProps | undefined,
     readonly apply: unknown, // TODO
@@ -47,22 +65,26 @@ export class Process extends Map<EffectId, EffectState> {
     super();
   }
 
-  ensureState = (source: Effect): EffectState => {
+  result = (id: EffectId): unknown => {
+    return this.get(id)!.result;
+  };
+
+  ensureState = (source: Effect): EffectRunState => {
     let state = this.get(source.id);
     if (!state) {
-      state = source.state(this);
+      state = new EffectRunState(this, source);
       this.set(source.id, state);
     }
     return state;
   };
 
-  ensureStates = (root: EffectLike): EffectState => {
+  ensureStates = (root: EffectLike): EffectRunState => {
     while (root instanceof Name) {
       root = root.root;
     }
     const rootState = this.ensureState(root);
-    const instate: [source: EffectLike, parentState: EffectState][] = [];
-    const pushChildren = (currentState: EffectState) => {
+    const instate: [source: EffectLike, parentState: EffectRunState][] = [];
+    const pushChildren = (currentState: EffectRunState) => {
       currentState.source.args?.forEach((arg) => {
         if (isEffectLike(arg)) {
           instate.push([arg, currentState]);
@@ -77,7 +99,7 @@ export class Process extends Map<EffectId, EffectState> {
         continue;
       } else {
         const currentState = this.ensureState(currentSource);
-        currentState.addDependent(parentState);
+        currentState.dependents.add(parentState);
         pushChildren(currentState);
       }
     }

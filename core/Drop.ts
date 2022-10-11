@@ -1,6 +1,5 @@
-import { ExitResult, then } from "../common.ts";
-import { E, Effect, EffectLike, EffectState, T, V } from "../Effect.ts";
-import { Process } from "../Run.ts";
+import { ExitResult } from "../common.ts";
+import { E, Effect, EffectLike, EffectRun, T, V } from "../Effect.ts";
 
 export function drop<S extends EffectLike, R extends ExitResult>(
   scope: S,
@@ -17,12 +16,8 @@ export class Drop<
     readonly scope: S,
     readonly cb: DropCb<S, R>,
   ) {
-    super("Drop", [scope, cb]);
+    super("Drop", dropRun, [scope, cb]);
   }
-
-  state = (process: Process): DropState => {
-    return new DropState(process, this as Drop<any, R>);
-  };
 }
 
 export type DropCb<
@@ -30,25 +25,27 @@ export type DropCb<
   ExitR extends ExitResult = ExitResult,
 > = (scopeResolved: T<Scope>) => ExitR;
 
-export class DropState extends EffectState<Drop> {
-  getResult = () => {
-    if (!("result" in this)) {
-      if (!this.isRoot) {
-        this.onOrphaned(() => {
-          return then(this.result, (ok) => {
-            return this.source.cb(ok);
-          });
-        });
-      }
-      const scopeResult = this.process.get(this.source.scope.id)!.getResult();
-      this.result = this.isRoot
-        ? then(scopeResult, (ok) => {
-          return then(this.source.cb(ok), () => {
-            return scopeResult;
-          });
-        })
-        : scopeResult;
-    }
-    return this.result;
-  };
-}
+const dropRun: EffectRun<Drop> = ({ process, source }) => {};
+
+// export class DropState extends EffectState<Drop> {
+//   getResult = () => {
+//     if (!("result" in this)) {
+//       if (!this.isRoot) {
+//         this.onOrphaned(() => {
+//           return then(this.result, (ok) => {
+//             return this.source.cb(ok);
+//           });
+//         });
+//       }
+//       const scopeResult = this.process.get(this.source.scope.id)!.getResult();
+//       this.result = this.isRoot
+//         ? then(scopeResult, (ok) => {
+//           return then(this.source.cb(ok), () => {
+//             return scopeResult;
+//           });
+//         })
+//         : scopeResult;
+//     }
+//     return this.result;
+//   };
+// }

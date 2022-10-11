@@ -1,8 +1,6 @@
-import { ExitResult, then } from "./common.ts";
 import { Placeholder } from "./Placeholder.ts";
-import { Process } from "./Run.ts";
+import { EffectRunState, Process } from "./Run.ts";
 import * as sig from "./Signature.ts";
-import { identity } from "./util.ts";
 
 declare const V_: unique symbol;
 declare const E_: unique symbol;
@@ -26,6 +24,7 @@ export abstract class Effect<
 
   constructor(
     readonly kind: K,
+    readonly run: EffectRun,
     readonly args?: unknown[],
   ) {
     args?.forEach((arg) => {
@@ -39,60 +38,11 @@ export abstract class Effect<
     });
     this.id = `${this.kind}(${this.args?.map(sig.of).join(",") || ""})`;
   }
-
-  abstract state: (process: Process) => EffectState;
 }
 
-export abstract class EffectState<Source extends Effect = Effect> {
-  declare result?: unknown;
-  declare isRoot?: true;
-
-  #dependents = new Set<EffectState>();
-  #orphanedCbs = new Set<() => ExitResult>();
-
-  constructor(
-    readonly process: Process,
-    readonly source: Source,
-  ) {}
-
-  addDependent = (dependent: EffectState): void => {
-    this.#dependents.add(dependent);
-  };
-
-  onOrphaned = (cb: () => ExitResult) => {
-    this.#orphanedCbs.add(cb);
-  };
-
-  removeDependent = (dependent: EffectState): ExitResult => {
-    this.#dependents.delete(dependent);
-    return this.runOrphanedCbs();
-  };
-
-  runOrphanedCbs = (): ExitResult => {
-    if (!this.#dependents.size) {
-      let err: undefined | { instance: Error; i: number };
-      const pendingExits: Promise<unknown>[] = [];
-      const orphanedCbs = [...this.#orphanedCbs.values()];
-      for (let i = 0; i < orphanedCbs.length; i++) {
-        const pending = then(
-          orphanedCbs[i]!(),
-          identity,
-          (instance) => {
-            if (!err || i < err.i) {
-              err = { i, instance };
-            }
-          },
-        );
-        if (pending instanceof Promise) {
-          pendingExits.push(pending);
-        }
-      }
-      return err?.instance;
-    }
-  };
-
-  abstract getResult: () => unknown;
-}
+export type EffectRun<E extends Effect = any> = (
+  currentState: EffectRunState<E>,
+) => unknown;
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
   abstract root: Root;

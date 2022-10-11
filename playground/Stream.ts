@@ -1,6 +1,5 @@
 import { ExitResult } from "../common.ts";
-import { E, Effect, EffectState, T as T_, V } from "../Effect.ts";
-import { Process } from "../Run.ts";
+import { E, Effect, EffectRun, T as T_, V } from "../Effect.ts";
 
 export function stream<T>() {
   return <A, R extends ExitResult>(
@@ -18,12 +17,8 @@ export class Stream<T = any, A = any, R extends ExitResult = ExitResult>
     readonly arg: A,
     readonly streamControllerFactory: StreamControllerFactory<T, A, R>,
   ) {
-    super("Stream", [arg, streamControllerFactory]);
+    super("Stream", runStream, [arg, streamControllerFactory]);
   }
-
-  state = (process: Process): StreamState => {
-    return new StreamState(process, this);
-  };
 }
 
 export type StreamControllerFactory<T, A, OpenR extends ExitResult> = (
@@ -34,4 +29,4 @@ export interface StreamController<T, OpenR extends ExitResult> {
   close: () => void;
 }
 
-export class StreamState extends EffectState<Stream> {}
+const runStream: EffectRun<Stream> = () => {};
