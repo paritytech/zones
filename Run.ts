@@ -35,7 +35,10 @@ export function run<PropsRest extends [props?: RunProps]>(
   ...[props]: PropsRest
 ): Run<PropsRest[0]> {
   return (root, apply?) => {
-    return new Process(props, apply as any).instate(root).result as any;
+    const process = new Process(props, apply as any);
+    const rootState = process.instate(root);
+    const result = rootState.result as any;
+    return U.thenOk(rootState.source.exit?.(rootState), () => result);
   };
 }
 
