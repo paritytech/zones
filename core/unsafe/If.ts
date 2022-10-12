@@ -28,5 +28,7 @@ export class If<
     super("If", [condition, then, else_]);
   }
 
-  enter: EffectRun = () => {};
+  enter: EffectRun = () => {
+    // TODO
+  };
 }

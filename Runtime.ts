@@ -30,6 +30,8 @@ export namespace RunProps {
   >[number]["placeholder"]["key"];
 }
 
+// TODO: the placeholder application stage typing needs love
+// TODO: re-think some of the placeholder/applied/misc. naming
 export function runtime<PropsRest extends [props?: RunProps]>(
   ...[props]: PropsRest
 ): Runtime<PropsRest[0]> {
@@ -114,6 +116,7 @@ export class Process extends Map<EffectId, RunState> {
     };
   }
 
+  // TODO: is `instate` is a strange name? Doesn't really matter... still.
   instate = (root: EffectLike): RunState => {
     while (root instanceof Name) {
       root = root.root;
