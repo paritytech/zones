@@ -18,7 +18,7 @@ export class Ls<Elements extends unknown[] = any[]>
   }
 
   enter: EffectRun = ({ process }) => {
-    return U.tryForEach(this.elements, process.resolve);
+    return U.all(...this.elements.map(process.resolve));
   };
 }
 

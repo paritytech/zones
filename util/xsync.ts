@@ -33,17 +33,15 @@ export function thenErr<T, R>(
   });
 }
 
-export function tryForEach<T, R>(
-  elements: T[],
-  fn: (element: T) => R,
-): XSync<R, Awaited<R>[] | Error> {
-  const pending: Promise<void>[] = [];
-  const elementsResolved = new Array<R>(elements.length);
+export function all<T>(...elements: T[]) {
+  const elementsPending: Promise<void>[] = [];
+  const elementsResolved = new Array(elements.length);
   let errorContainer: undefined | { instance: Error; i: number };
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i]!;
-    const elementResult = then(fn(element), (resolved) => {
+    const maybePending = then(element, (resolved) => {
       if (resolved instanceof Error) {
+        // We ensure ordered errors for determinism
         if (!errorContainer || errorContainer.i > i) {
           errorContainer = { instance: resolved, i };
         }
@@ -51,11 +49,11 @@ export function tryForEach<T, R>(
         elementsResolved[i] = resolved;
       }
     });
-    if (elementResult instanceof Promise) {
-      pending.push(elementResult);
+    if (maybePending instanceof Promise) {
+      elementsPending.push(maybePending);
     }
   }
-  return then(pending.length ? Promise.all(pending) : undefined, () => {
+  return then(elementsPending.length ? Promise.all(elementsPending) : 0, () => {
     return errorContainer?.instance || elementsResolved;
-  }) as XSync<R, Awaited<R>[] | Error>;
+  });
 }

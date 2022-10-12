@@ -1,5 +1,5 @@
 import { Placeholder } from "./Placeholder.ts";
-import { RunState } from "./Run.ts";
+import { RunState } from "./Runtime.ts";
 import * as U from "./util/mod.ts";
 
 declare const V_: unique symbol;

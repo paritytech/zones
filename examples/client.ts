@@ -18,17 +18,13 @@ class InnerClient {
     });
   };
 
-  send = (methodName: string) => {
-    return new Promise<Record<PropertyKey, unknown>>((resolve) => {
+  send = (methodName: string, args: unknown[]) => {
+    return new Promise<{
+      methodName: string;
+      args: unknown[];
+    }>((resolve) => {
       return setTimeout(() => {
-        resolve({
-          methodName,
-          fakeResult: {
-            a: "A",
-            b: 3,
-            c: true,
-          },
-        });
+        resolve({ methodName, args });
       }, 1000);
     });
   };
@@ -53,18 +49,26 @@ function client<Url extends Z.$<string>>(url: Url) {
   );
 }
 
-function call<Client extends Z.$<InnerClient>, Method extends Z.$<string>>(
+function call<
+  Client extends Z.$<InnerClient>,
+  Method extends Z.$<string>,
+  Args extends Z.Ls$<unknown[]>,
+>(
   client: Client,
   method: Method,
+  args: Args,
 ) {
-  return Z.call(Z.ls(client, method), ([client, method]) => {
-    console.log("CALL");
-    return client.send(method);
-  });
+  return Z.call(
+    Z.ls(client, method, Z.ls(...args)),
+    ([client, method, args]) => {
+      console.log("CALL");
+      return client.send(method, args);
+    },
+  );
 }
 
-const root = call(client("wss://rpc.polkadot.io"), "HELLO");
+const root = call(client("wss://rpc.polkadot.io"), "someMethod", [1, 2, 3]);
 
-const result = await Z.run()(root);
+const result = await Z.runtime()(root);
 
 console.log(U.throwIfError(result));

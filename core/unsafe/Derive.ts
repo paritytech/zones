@@ -28,10 +28,7 @@ export class Derive<Target = any, UseResult extends EffectLike = EffectLike>
 
   enter: EffectRun = ({ process }) => {
     return U.thenOk(
-      U.then(
-        process.resolve(this.from),
-        thrownAsUntypedError(this.into),
-      ),
+      U.then(process.resolve(this.from), thrownAsUntypedError(this.into)),
       (e) => process.instate(e).result,
     );
   };

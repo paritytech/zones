@@ -9,7 +9,7 @@ const second = Z._<number>()(second_);
 const third_ = Symbol();
 const third = Z._<boolean>()(third_);
 
-const run = Z.run({
+const run = Z.runtime({
   // TODO: disable repeats
   apply: [
     first("HELLO"),

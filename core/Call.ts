@@ -51,7 +51,7 @@ export class Call<D = any, R = any> extends Effect<
   }
 
   enter: EffectRun = (state) => {
-    return U.then(
+    return U.thenOk(
       state.process.resolve(this.dep),
       thrownAsUntypedError(this.logic),
     );

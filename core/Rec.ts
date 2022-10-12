@@ -29,9 +29,8 @@ export class Rec<
 
   enter: EffectRun = ({ process }) => {
     return U.thenOk(
-      U.tryForEach(Object.values(this.fields), process.resolve),
+      U.all(...Object.values(this.fields).map(process.resolve)),
       (values) => {
-        if (values instanceof Error) return; // TODO: fix
         return this.keys.reduce((acc, cur, i) => {
           return {
             ...acc,

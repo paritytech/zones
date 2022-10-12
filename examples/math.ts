@@ -25,16 +25,16 @@ function subtract<Props extends Z.Rec$<SubtractProps>>(props: Props) {
 }
 
 const root = add(
-  1,
+  10,
   add(
-    3,
+    2,
     subtract({
-      a: 1,
-      b: 10,
+      a: 3,
+      b: 4,
     }),
   ),
 );
 
-const result = await Z.run()(root);
+const result = await Z.runtime()(root);
 
 console.log(result);

@@ -1,4 +1,3 @@
-// TODO: clean up these typings
 import {
   E,
   Effect,
@@ -31,9 +30,9 @@ export namespace RunProps {
   >[number]["placeholder"]["key"];
 }
 
-export function run<PropsRest extends [props?: RunProps]>(
+export function runtime<PropsRest extends [props?: RunProps]>(
   ...[props]: PropsRest
-): Run<PropsRest[0]> {
+): Runtime<PropsRest[0]> {
   return (root, apply?) => {
     const process = new Process(props, apply as any);
     const rootState = process.instate(root);
@@ -42,7 +41,7 @@ export function run<PropsRest extends [props?: RunProps]>(
   };
 }
 
-export interface Run<
+export interface Runtime<
   Props extends RunProps | undefined,
   GlobalApplyKey extends RunProps.GlobalApplyKey<Props> =
     RunProps.GlobalApplyKey<Props>,
@@ -77,27 +76,21 @@ export class RunState {
 
   get result(): unknown {
     if (this.#runResult === RunState.YET_TO_RUN) {
-      this.#runResult = U.thenOk(
-        this.source.enter(this),
-        (enterResult) => {
-          if (this.source.dependencies) {
-            return U.thenOk(
-              U.tryForEach(
-                [...this.source.dependencies.values()],
-                (depSource) => {
-                  const depState = this.process.state(depSource);
-                  depState.dependents.delete(this);
-                  if (!depState.dependents.size) {
-                    return depState.source.exit?.(depState);
-                  }
-                },
-              ),
-              () => enterResult,
-            );
-          }
-          return enterResult;
-        },
-      );
+      const enterResult = this.source.enter(this);
+      this.#runResult = U.thenOk(enterResult, (enterResult) => {
+        if (this.source.dependencies) {
+          const depExitResult = [...this.source.dependencies.values()]
+            .map((depSource) => {
+              const depState = this.process.state(depSource);
+              depState.dependents.delete(this);
+              if (!depState.dependents.size) {
+                return depState.source.exit?.(depState);
+              }
+            });
+          return U.thenOk(U.all(...depExitResult), () => enterResult);
+        }
+        return enterResult;
+      });
     }
     return this.#runResult;
   }
@@ -163,7 +156,7 @@ export class Process extends Map<EffectId, RunState> {
   };
 
   resolve = (x: unknown) => {
-    return (isEffectLike(x))
+    return isEffectLike(x)
       ? this.state(x)!.result
       : isPlaceholder(x)
       ? this.applies[x.key]

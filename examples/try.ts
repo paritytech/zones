@@ -1,6 +1,6 @@
 import * as Z from "../mod.ts";
 
-const run = Z.run();
+const run = Z.runtime();
 
 const a = Z.call(undefined!, () => {
   if (true as boolean) {
