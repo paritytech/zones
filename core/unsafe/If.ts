@@ -1,4 +1,5 @@
-import { $, E, Effect, EffectRun, T, V } from "../Effect.ts";
+// TODO: utilize `Derive` under the hood
+import { $, E, Effect, EffectRun, T, V } from "../../Effect.ts";
 
 export { if_ as if };
 function if_<Condition extends $<boolean>, Then, Else = void>(

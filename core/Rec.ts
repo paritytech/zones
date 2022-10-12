@@ -1,10 +1,14 @@
 import { $, E, Effect, EffectRun, T, V } from "../Effect.ts";
+import * as U from "../util/mod.ts";
 
 export function rec<Fields extends Record<PropertyKey, unknown>>(
   fields: Fields,
 ): Rec<Fields> {
   return new Rec(fields);
 }
+
+const recKeysPre_ = Symbol();
+const recValuesPre_ = Symbol();
 
 export class Rec<
   Fields extends Record<PropertyKey, unknown> = Record<PropertyKey, any>,
@@ -14,16 +18,29 @@ export class Rec<
   E<Fields[keyof Fields]>,
   RecT<Fields>
 > {
+  keys;
+
   constructor(readonly fields: Fields) {
-    super("Rec", Object.values(fields));
-    // // TODO
-    // this.inner = Object
-    //   .entries(fields)
-    //   .map(([k, v]) => `${sig.strong.of(k)}:${sig.of(v)}`)
-    //   .join(",");
+    const keys = Object.keys(fields);
+    const values = Object.values(fields);
+    super("Rec", [recKeysPre_, keys, recValuesPre_, values]);
+    this.keys = keys;
   }
 
-  enter: EffectRun = () => {};
+  enter: EffectRun = ({ process }) => {
+    return U.then.ok(
+      U.tryForEach(Object.values(this.fields), process.resolve),
+      (values) => {
+        if (values instanceof Error) return; // TODO: fix
+        return this.keys.reduce((acc, cur, i) => {
+          return {
+            ...acc,
+            [cur]: values[i]!,
+          };
+        }, {});
+      },
+    );
+  };
 }
 
 export type Rec$<Fields> = { [K in keyof Fields]: $<Fields[K]> };

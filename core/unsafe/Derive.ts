@@ -1,10 +1,11 @@
 import { E, Effect, EffectLike, EffectRun, T, V } from "../../Effect.ts";
+import * as U from "../../util/mod.ts";
 
 export function derive<Target, UseResult extends EffectLike>(
-  target: Target,
+  from: Target,
   into: DeriveInto<Target, UseResult>,
 ): Derive<Target, UseResult> {
-  return new Derive(target, into);
+  return new Derive(from, into);
 }
 
 export class Derive<Target = any, UseResult extends EffectLike = EffectLike>
@@ -24,7 +25,16 @@ export class Derive<Target = any, UseResult extends EffectLike = EffectLike>
     super("Derive", [from, into]);
   }
 
-  enter: EffectRun = () => {};
+  enter: EffectRun = ({ process }) => {
+    return U.then.ok(
+      U.then(
+        process.resolve(this.from),
+        // TODO: clean up these typings
+        U.thrownAsUntypedError(this.into),
+      ),
+      (e) => process.instate(e as EffectLike).result,
+    );
+  };
 }
 
 export type DeriveResult = Error | EffectLike | Promise<Error | EffectLike>;

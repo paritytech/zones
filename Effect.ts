@@ -1,6 +1,6 @@
 import { Placeholder } from "./Placeholder.ts";
 import { RunState } from "./Run.ts";
-import * as sig from "./Signature.ts";
+import * as U from "./util/mod.ts";
 import { ExitResult } from "./util/mod.ts";
 
 declare const V_: unique symbol;
@@ -8,7 +8,7 @@ declare const E_: unique symbol;
 declare const T_: unique symbol;
 
 declare const effectId: unique symbol;
-export type EffectId = sig.Signature & { [effectId]?: true };
+export type EffectId = U.sig.Signature & { [effectId]?: true };
 
 export abstract class Effect<
   K extends string = string,
@@ -33,7 +33,7 @@ export abstract class Effect<
       }
     });
     this.id = `${this.kind}(${
-      this.args?.map(sig.of).join(",") || ""
+      this.args?.map(U.sig.of).join(",") || ""
     })` as EffectId;
   }
 

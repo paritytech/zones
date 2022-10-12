@@ -1,4 +1,4 @@
-import { E, Effect, EffectRun, isEffectLike, T, V } from "../Effect.ts";
+import { E, Effect, EffectRun, T, V } from "../Effect.ts";
 import { then, thrownAsUntypedError } from "../util/mod.ts";
 import { Ls, Ls$ } from "./Ls.ts";
 
@@ -6,7 +6,7 @@ export function call<D, R>(dep: D, fn: CallLogic<D, R>): Call<D, R> {
   return new Call(dep, fn);
 }
 export namespace call {
-  export function f<A extends unknown[], R>(fn: (...args: A) => R) {
+  export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
     return <X extends Ls$<A>>(...args: X) => {
       return new Call(
         new Ls(...args),
@@ -14,6 +14,26 @@ export namespace call {
       );
     };
   }
+
+  /**
+   * TODO(@tjjfvi): a factory for generic call factories?
+   *
+   * One limitation: we can't attach doc comments to params.
+   * Perhaps this factory should be constrained to be unary, where the param must be an object?
+   * This would force a situation in which doc comments don't need to be attached to params,
+   * as they can be attached to props instead.
+   *
+   * How would this look? Maybe...
+   *
+   * ```ts
+   * export const f = generic((def) => {
+   *   return def(<Props extends { val: string | number }>(
+   *     props: Props,
+   *   ): Props["val"] => props.val);
+   * });
+   * ```
+   */
+  export declare function gen(def: (x: any) => any): any;
 }
 
 export class Call<D = any, R = any> extends Effect<
@@ -31,9 +51,7 @@ export class Call<D = any, R = any> extends Effect<
 
   enter: EffectRun = (state) => {
     return then(
-      isEffectLike(this.dep)
-        ? state.process.get(this.dep.id)!.result
-        : this.dep,
+      state.process.resolve(this.dep),
       thrownAsUntypedError(this.logic),
     );
   };

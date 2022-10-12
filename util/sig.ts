@@ -1,5 +1,5 @@
-import { isEffectLike } from "./Effect.ts";
-import { MapLike } from "./util/mod.ts";
+import { isEffectLike } from "../Effect.ts";
+import { MapLike } from "../util/mod.ts";
 
 declare const signature_: unique symbol;
 export type Signature = string & { [signature_]?: true };

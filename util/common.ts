@@ -1,6 +1,5 @@
 export interface MapLike<K, V> {
   set(key: K, value: V): void;
-  has(key: K): boolean;
   get(key: K): V | undefined;
   delete(key: K): boolean;
 }
@@ -8,6 +7,9 @@ export interface MapLike<K, V> {
 export type U2I<T> = (T extends any ? (value: T) => any : never) extends
   (value: infer R) => any ? R : never;
 
-export type ExitStatus = void | Error;
-export type ExitStatusPending = Promise<ExitStatus>;
-export type ExitResult = ExitStatus | ExitStatusPending;
+// TODO: delete if unused
+export type ValueOf<T> = T[keyof T];
+
+export function identity<T>(val: T): T {
+  return val;
+}

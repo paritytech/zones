@@ -11,3 +11,4 @@ pendings
 resolveds
 tjjfvi
 polkadot
+xsync
