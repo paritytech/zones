@@ -1,4 +1,5 @@
 import { E, Effect, EffectLike, EffectRun, T, V } from "../../Effect.ts";
+import { thrownAsUntypedError } from "../../Error.ts";
 import * as U from "../../util/mod.ts";
 
 export function derive<Target, UseResult extends EffectLike>(
@@ -26,13 +27,12 @@ export class Derive<Target = any, UseResult extends EffectLike = EffectLike>
   }
 
   enter: EffectRun = ({ process }) => {
-    return U.then.ok(
+    return U.thenOk(
       U.then(
         process.resolve(this.from),
-        // TODO: clean up these typings
-        U.thrownAsUntypedError(this.into),
+        thrownAsUntypedError(this.into),
       ),
-      (e) => process.instate(e as EffectLike).result,
+      (e) => process.instate(e).result,
     );
   };
 }

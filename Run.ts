@@ -9,6 +9,7 @@ import {
   T,
   V,
 } from "./Effect.ts";
+import { UntypedError } from "./Error.ts";
 import {
   EnsureSoleApplies,
   FlattenApplies,
@@ -16,10 +17,10 @@ import {
   isPlaceholder,
   PlaceholderApplied,
 } from "./Placeholder.ts";
-import { then, tryForEach, UntypedError } from "./util/mod.ts";
+import * as U from "./util/mod.ts";
 
+// TODO: why isn't this behaving properly? Perhaps because the arg doesn't reference a type param from the `run` scope?
 export interface RunProps {
-  // TODO: why isn't this behaving properly? Perhaps because the arg doesn't reference a type param from the `run` scope?
   // apply?: EnsureSoleApplies<PlaceholderApplied[]>;
   apply?: PlaceholderApplied[];
 }
@@ -73,17 +74,27 @@ export class RunState {
 
   get result(): unknown {
     if (this.#runResult === RunState.YET_TO_RUN) {
-      this.#runResult = then(this.source.enter(this), (ok) => {
-        if (this.source.dependencies) {
-          tryForEach([...this.source.dependencies.values()], ({ id }) => {
-            const depState = this.process.get(id)!;
-            depState.dependents.delete(this);
-            // TODO: trigger exits (important for `Drop`)
-            if (!depState.dependents.size) {}
-          });
-        }
-        return ok;
-      });
+      this.#runResult = U.thenOk(
+        this.source.enter(this),
+        (enterResult) => {
+          if (this.source.dependencies) {
+            return U.thenOk(
+              U.tryForEach(
+                [...this.source.dependencies.values()],
+                (depSource) => {
+                  const depState = this.process.state(depSource);
+                  depState.dependents.delete(this);
+                  if (!depState.dependents.size) {
+                    return depState.source.exit?.(depState);
+                  }
+                },
+              ),
+              () => enterResult,
+            );
+          }
+          return enterResult;
+        },
+      );
     }
     return this.#runResult;
   }

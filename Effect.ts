@@ -1,7 +1,6 @@
 import { Placeholder } from "./Placeholder.ts";
 import { RunState } from "./Run.ts";
 import * as U from "./util/mod.ts";
-import { ExitResult } from "./util/mod.ts";
 
 declare const V_: unique symbol;
 declare const E_: unique symbol;
@@ -43,7 +42,7 @@ export abstract class Effect<
 }
 
 export type EffectRun<R = any> = (state: RunState) => R;
-export type EffectExit = EffectRun<ExitResult>;
+export type EffectExit = EffectRun<U.ExitResult>;
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
   abstract root: Root;

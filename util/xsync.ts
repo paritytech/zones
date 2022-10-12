@@ -6,32 +6,32 @@ export function then<T, R>(
     ? val.then(cb)
     : cb(val as Awaited<T>)) as XSync<T, R>;
 }
-export namespace then {
-  function fromPredicate<X>(
-    predicate: (inQuestion: unknown) => inQuestion is X,
-  ) {
-    return <T, R>(
-      val: T,
-      cb: (valResolved: Extract<Awaited<T>, X>) => R,
-    ): XSync<T, Exclude<Awaited<T>, X> | R> => {
-      return then(val, (x) => {
-        return predicate(x) ? cb(x as any) : x;
-      }) as any;
-    };
-  }
-  const isError = <T>(inQuestion: T): inQuestion is Extract<T, Error> => {
-    return inQuestion instanceof Error;
-  };
-  export const err = fromPredicate(isError);
-  const isNotError = <T>(inQuestion: T): inQuestion is Exclude<T, Error> => {
-    return !isError(inQuestion);
-  };
-  export const ok = fromPredicate(isNotError);
-}
 
 export type XSync<Dep, Inner> = unknown extends Dep ? Inner | Promise<Inner>
   : Dep extends Promise<any> ? Promise<Inner>
   : Inner;
+
+const isError = <T>(inQuestion: T): inQuestion is Extract<T, Error> => {
+  return inQuestion instanceof Error;
+};
+
+export function thenOk<T, R>(
+  val: T,
+  cb: (okResolved: Exclude<Awaited<T>, Error>) => R,
+) {
+  return then(val, (x) => {
+    return isError(x) ? x : cb(x as Exclude<Awaited<T>, Error>);
+  });
+}
+
+export function thenErr<T, R>(
+  val: T,
+  cb: (errResolved: Extract<Awaited<T>, Error>) => R,
+) {
+  return then(val, (x) => {
+    return isError(x) ? cb(x as Extract<Awaited<T>, Error>) : x;
+  });
+}
 
 export function tryForEach<T, R>(
   elements: T[],

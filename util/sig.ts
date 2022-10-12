@@ -1,5 +1,5 @@
 import { isEffectLike } from "../Effect.ts";
-import { MapLike } from "../util/mod.ts";
+import * as U from "../util/mod.ts";
 
 declare const signature_: unique symbol;
 export type Signature = string & { [signature_]?: true };
@@ -9,7 +9,7 @@ class SignatureFactory<T> {
 
   constructor(
     readonly type: string,
-    readonly container: MapLike<T, string>,
+    readonly container: U.MapLike<T, string>,
   ) {}
 
   of = (target: T): string => {

@@ -1,5 +1,6 @@
 import { E, Effect, EffectRun, T, V } from "../Effect.ts";
-import { then, thrownAsUntypedError } from "../util/mod.ts";
+import { thrownAsUntypedError } from "../Error.ts";
+import * as U from "../util/mod.ts";
 import { Ls, Ls$ } from "./Ls.ts";
 
 export function call<D, R>(dep: D, fn: CallLogic<D, R>): Call<D, R> {
@@ -50,7 +51,7 @@ export class Call<D = any, R = any> extends Effect<
   }
 
   enter: EffectRun = (state) => {
-    return then(
+    return U.then(
       state.process.resolve(this.dep),
       thrownAsUntypedError(this.logic),
     );

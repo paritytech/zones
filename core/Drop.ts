@@ -32,7 +32,7 @@ export class Drop<
   };
 
   override exit: EffectExit = ({ result }) => {
-    this.cb(result as T<S>);
+    return this.cb(result as T<S>);
   };
 }
 

@@ -28,7 +28,7 @@ export class Rec<
   }
 
   enter: EffectRun = ({ process }) => {
-    return U.then.ok(
+    return U.thenOk(
       U.tryForEach(Object.values(this.fields), process.resolve),
       (values) => {
         if (values instanceof Error) return; // TODO: fix

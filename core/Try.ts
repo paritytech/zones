@@ -1,9 +1,9 @@
 import { E, Effect, EffectLike, EffectRun, T, V } from "../Effect.ts";
-import { then } from "../util/mod.ts";
+import * as U from "../util/mod.ts";
 
 export function try_<
   Attempt extends EffectLike,
-  FallbackR,
+  FallbackR extends T<Attempt> | Error,
 >(
   attempt: Attempt,
   fallback: Catch<Attempt, FallbackR>,
@@ -16,14 +16,15 @@ Object.defineProperty(try_, "name", {
 });
 export { try_ as try };
 
-export class Try<Attempt extends EffectLike = EffectLike, FallbackR = any>
-  extends Effect<
-    "Try",
-    V<Attempt>,
-    Extract<Awaited<FallbackR>, Error>,
-    T<Attempt> | Exclude<Awaited<FallbackR>, Error>
-  >
-{
+export class Try<
+  Attempt extends EffectLike = EffectLike,
+  FallbackR extends T<Attempt> | Error = T<Attempt> | Error,
+> extends Effect<
+  "Try",
+  V<Attempt>,
+  Extract<Awaited<FallbackR>, Error>,
+  T<Attempt> | Exclude<Awaited<FallbackR>, Error>
+> {
   constructor(
     readonly attempt: Attempt,
     readonly fallback: Catch<Attempt, FallbackR>,
@@ -32,7 +33,8 @@ export class Try<Attempt extends EffectLike = EffectLike, FallbackR = any>
   }
 
   enter: EffectRun = ({ process }) => {
-    return then.err(process.get(this.attempt.id)!.result, this.fallback);
+    // TODO: fix this
+    return U.thenErr(process.get(this.attempt.id)!.result, this.fallback);
   };
 }
 

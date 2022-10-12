@@ -1,5 +1,5 @@
 import { $, E, Effect, EffectRun, T, V } from "../Effect.ts";
-import { tryForEach } from "../util/mod.ts";
+import * as U from "../util/mod.ts";
 
 export function ls<Elements extends unknown[]>(
   ...elements: Elements
@@ -18,7 +18,7 @@ export class Ls<Elements extends unknown[] = any[]>
   }
 
   enter: EffectRun = ({ process }) => {
-    return tryForEach(this.elements, process.resolve);
+    return U.tryForEach(this.elements, process.resolve);
   };
 }
 
