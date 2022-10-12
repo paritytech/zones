@@ -1,15 +1,9 @@
 export function then<T, R>(
   val: T,
   cb: (valResolved: Awaited<T>) => R,
-): XSync<T, R> {
-  return (val instanceof Promise
-    ? val.then(cb)
-    : cb(val as Awaited<T>)) as XSync<T, R>;
+) {
+  return val instanceof Promise ? val.then(cb) : cb(val as Awaited<T>);
 }
-
-export type XSync<Dep, Inner> = unknown extends Dep ? Inner | Promise<Inner>
-  : Dep extends Promise<any> ? Promise<Inner>
-  : Inner;
 
 const isError = <T>(inQuestion: T): inQuestion is Extract<T, Error> => {
   return inQuestion instanceof Error;
