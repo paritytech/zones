@@ -17,7 +17,7 @@ export class Ls<Elements extends unknown[] = any[]>
     this.elements = elements;
   }
 
-  enter: EffectRun = ({ process }) => {
+  run: EffectRun = ({ process }) => {
     return U.all(...this.elements.map(process.resolve));
   };
 }

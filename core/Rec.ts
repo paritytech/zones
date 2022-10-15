@@ -27,7 +27,7 @@ export class Rec<
     this.keys = keys;
   }
 
-  enter: EffectRun = ({ process }) => {
+  run: EffectRun = ({ process }) => {
     return U.thenOk(
       U.all(...Object.values(this.fields).map(process.resolve)),
       (values) => {

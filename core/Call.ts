@@ -50,7 +50,7 @@ export class Call<D = any, R = any> extends Effect<
     super("Call", [dep, logic]);
   }
 
-  enter: EffectRun = (state) => {
+  run: EffectRun = (state) => {
     return U.thenOk(
       state.process.resolve(this.dep),
       thrownAsUntypedError(this.logic),

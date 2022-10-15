@@ -36,13 +36,10 @@ export abstract class Effect<
     })` as EffectId;
   }
 
-  abstract enter: EffectRun;
-
-  declare exit?: EffectExit;
+  abstract run: EffectRun;
 }
 
-export type EffectRun<R = any> = (state: RunState) => R;
-export type EffectExit = EffectRun<U.ExitResult>;
+export type EffectRun = (state: RunState) => unknown;
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
   abstract root: Root;

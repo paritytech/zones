@@ -12,7 +12,7 @@ class ClientDisconnectError extends Error {
 class InnerClient {
   constructor(readonly discoveryValue: string) {}
 
-  close = () => {
+  close = (): Promise<void | ClientDisconnectError> => {
     return new Promise<void>((resolve) => {
       setTimeout(resolve, 1000);
     });
@@ -31,22 +31,13 @@ class InnerClient {
 }
 
 function client<Url extends Z.$<string>>(url: Url) {
-  return Z.drop(
-    Z.call(url, (url) => {
-      console.log("CONNECT");
-      if (false as boolean) {
-        return new ClientConnectError();
-      }
-      return new InnerClient(url);
-    }),
-    (client) => {
-      console.log("DISCONNECT");
-      if (false as boolean) {
-        return new ClientDisconnectError();
-      }
-      return client.close();
-    },
-  );
+  return Z.call(url, (url) => {
+    console.log("ENTER CLIENT");
+    if (false as boolean) {
+      return new ClientConnectError();
+    }
+    return new InnerClient(url);
+  });
 }
 
 function call<
@@ -59,10 +50,16 @@ function call<
   args: Args,
 ) {
   return Z.call(
-    Z.ls(client, method, Z.ls(...args)),
-    ([client, method, args]) => {
-      console.log("CALL");
-      return client.send(method, args);
+    Z.ls(client, method, Z.ls(...args), Z.rc(client)),
+    async ([client, method, args, clientRc]) => {
+      console.log("ENTER CALL");
+      const result = await client.send(method, args);
+      if (clientRc == 2) {
+        console.log("CLOSE CLIENT");
+        const maybeCloseError = await client.close();
+        if (maybeCloseError instanceof Error) return maybeCloseError;
+      }
+      return result;
     },
   );
 }

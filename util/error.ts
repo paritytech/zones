@@ -5,4 +5,5 @@ export function throwIfError<T>(value: T): Exclude<T, Error> {
   return value as Exclude<T, Error>;
 }
 
-export type ExitResult = void | Error | Promise<void | Error>;
+export type ExitResolved = void | Error;
+export type ExitResult = ExitResolved | Promise<ExitResolved>;

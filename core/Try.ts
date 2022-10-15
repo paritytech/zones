@@ -32,7 +32,7 @@ export class Try<
     super("Try", [attempt, fallback]);
   }
 
-  enter: EffectRun = ({ process }) => {
+  run: EffectRun = ({ process }) => {
     // TODO: fix this
     return U.thenErr(process.get(this.attempt.id)!.result, this.fallback);
   };

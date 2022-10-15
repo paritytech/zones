@@ -38,8 +38,7 @@ export function runtime<PropsRest extends [props?: RunProps]>(
   return (root, apply?) => {
     const process = new Process(props, apply as any);
     const rootState = process.instate(root);
-    const result = rootState.result as any;
-    return U.thenOk(rootState.source.exit?.(rootState), () => result);
+    return rootState.result as any;
   };
 }
 
@@ -64,10 +63,10 @@ export interface Runtime<
   ): Promise<E<Root> | UntypedError | T<Root>>;
 }
 
-export class RunState {
-  static YET_TO_RUN = Symbol();
+const result_ = Symbol();
 
-  #runResult: unknown = RunState.YET_TO_RUN;
+export class RunState {
+  declare [result_]: unknown;
 
   dependents = new Set<RunState>();
 
@@ -77,24 +76,18 @@ export class RunState {
   ) {}
 
   get result(): unknown {
-    if (this.#runResult === RunState.YET_TO_RUN) {
-      const enterResult = this.source.enter(this);
-      this.#runResult = U.thenOk(enterResult, (enterResult) => {
+    if (!(result_ in this)) {
+      this[result_] = U.thenOk(this.source.run(this), (enterResult) => {
         if (this.source.dependencies) {
-          const depExitResult = [...this.source.dependencies.values()]
-            .map((depSource) => {
-              const depState = this.process.state(depSource);
-              depState.dependents.delete(this);
-              if (!depState.dependents.size) {
-                return depState.source.exit?.(depState);
-              }
-            });
-          return U.thenOk(U.all(...depExitResult), () => enterResult);
+          [...this.source.dependencies.values()].forEach((depSource) => {
+            const depState = this.process.state(depSource);
+            depState.dependents.delete(this);
+          });
         }
         return enterResult;
       });
     }
-    return this.#runResult;
+    return this[result_];
   }
 }
 
