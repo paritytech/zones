@@ -1,25 +1,12 @@
-import { $, E, Effect, EffectRun, T, V } from "../Effect.ts";
+import { $, E, Effect, T, V } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 export function ls<Elements extends unknown[]>(
   ...elements: Elements
-): Ls<Elements> {
-  return new Ls(...elements);
-}
-
-export class Ls<Elements extends unknown[] = any[]>
-  extends Effect<"Ls", V<Elements[number]>, E<Elements[number]>, LsT<Elements>>
-{
-  elements;
-
-  constructor(...elements: Elements) {
-    super("Ls", elements);
-    this.elements = elements;
-  }
-
-  run: EffectRun = ({ process }) => {
-    return U.all(...this.elements.map(process.resolve));
-  };
+): Effect<LsT<Elements>, E<Elements[number]>, V<Elements[number]>> {
+  return new Effect("Ls", ({ process }) => {
+    return U.all(...elements.map(process.resolve));
+  }, elements);
 }
 
 export type Ls$<Elements> = {

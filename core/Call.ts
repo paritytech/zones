@@ -1,18 +1,25 @@
-import { E, Effect, EffectRun, T, V } from "../Effect.ts";
+import { E, Effect, T, V } from "../Effect.ts";
 import { thrownAsUntypedError } from "../Error.ts";
 import * as U from "../util/mod.ts";
-import { Ls, Ls$ } from "./Ls.ts";
+import { ls, Ls$ } from "./Ls.ts";
 
-export function call<D, R>(dep: D, fn: CallLogic<D, R>): Call<D, R> {
-  return new Call(dep, fn);
+export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
+  Exclude<Awaited<R>, Error>,
+  E<D> | Extract<Awaited<R>, Error>,
+  V<D>
+> {
+  return new Effect("Call", (state) => {
+    return U.thenOk(
+      state.process.resolve(dep),
+      thrownAsUntypedError(logic),
+    );
+  }, [dep, logic]);
 }
 export namespace call {
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
     return <X extends Ls$<A>>(...args: X) => {
-      return new Call(
-        new Ls(...args),
-        fn as unknown as CallLogic<Ls<[...X]>, R>,
-      );
+      const dep = ls(...args);
+      return call(dep, fn as unknown as CallLogic<typeof dep, R>);
     };
   }
 
@@ -35,27 +42,6 @@ export namespace call {
    * ```
    */
   export declare function gen(def: (x: any) => any): any;
-}
-
-export class Call<D = any, R = any> extends Effect<
-  "Call",
-  V<D>,
-  E<D> | Extract<Awaited<R>, Error>,
-  Exclude<Awaited<R>, Error>
-> {
-  constructor(
-    readonly dep: D,
-    readonly logic: CallLogic<D, R>,
-  ) {
-    super("Call", [dep, logic]);
-  }
-
-  run: EffectRun = (state) => {
-    return U.thenOk(
-      state.process.resolve(this.dep),
-      thrownAsUntypedError(this.logic),
-    );
-  };
 }
 
 export type CallLogic<D, R> = (depResolved: T<D>) => R;
