@@ -54,7 +54,7 @@ function call<
     async ([client, method, args, clientRc]) => {
       console.log("ENTER CALL");
       const result = await client.send(method, args);
-      if (clientRc == 2) {
+      if (clientRc?.() == 0) {
         console.log("CLOSE CLIENT");
         const maybeCloseError = await client.close();
         if (maybeCloseError instanceof Error) return maybeCloseError;
