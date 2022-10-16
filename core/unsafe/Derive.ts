@@ -12,11 +12,13 @@ export function derive<Target, UseResult extends EffectLike>(
   | E<Extract<Awaited<UseResult>, EffectLike>>,
   V<Target> | V<Awaited<UseResult>>
 > {
-  return new Effect("Derive", ({ process }) => {
-    return U.thenOk(
-      U.then(process.resolve(from), thrownAsUntypedError(into)),
-      (e) => process.instate(e).result,
-    );
+  return new Effect("Derive", (process) => {
+    return () => {
+      return U.thenOk(
+        U.then(process.resolve(from), thrownAsUntypedError(into)),
+        (e) => process.init(e)(),
+      );
+    };
   }, [from, into]);
 }
 

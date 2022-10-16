@@ -36,9 +36,7 @@ export function runtime<PropsRest extends [props?: RunProps]>(
   ...[props]: PropsRest
 ): Runtime<PropsRest[0]> {
   return (root, apply?) => {
-    const process = new Process(props, apply as any);
-    const rootState = process.instate(root);
-    return rootState.result as any;
+    return new Process(props, apply as any).init(root)() as any;
   };
 }
 
@@ -63,36 +61,9 @@ export interface Runtime<
   ): Promise<E<Root> | UntypedError | T<Root>>;
 }
 
-const result_ = Symbol();
-
-export class RunState {
-  declare [result_]: unknown;
-
-  dependents = new Set<RunState>();
-
-  constructor(
-    readonly process: Process,
-    readonly source: Effect,
-  ) {}
-
-  get result(): unknown {
-    if (!(result_ in this)) {
-      this[result_] = U.thenOk(this.source.run(this), (enterResult) => {
-        if (this.source.dependencies) {
-          [...this.source.dependencies.values()].forEach((depSource) => {
-            const depState = this.process.state(depSource);
-            depState.dependents.delete(this);
-          });
-        }
-        return enterResult;
-      });
-    }
-    return this[result_];
-  }
-}
-
-export class Process extends Map<EffectId, RunState> {
-  applies;
+export class Process extends Map<EffectId, () => unknown> {
+  #applies;
+  #context = new Map<new() => unknown, unknown>();
 
   constructor(
     readonly props: RunProps | undefined,
@@ -103,59 +74,66 @@ export class Process extends Map<EffectId, RunState> {
       ) => Record<PropertyKey, unknown>),
   ) {
     super();
-    this.applies = {
+    this.#applies = {
       ...props?.apply && flattenApplies(...props.apply),
       ...localApply && localApply(flattenApplies),
     };
   }
 
-  // TODO: is `instate` is a strange name? Doesn't really matter... still.
-  instate = (root: EffectLike): RunState => {
+  #ensureRun = (source: Effect) => {
+    let run = this.get(source.id);
+    if (!run) {
+      run = source.run(this);
+      this.set(source.id, run);
+    }
+    return run;
+  };
+
+  init = (root: EffectLike) => {
     while (root instanceof Name) {
       root = root.root;
     }
-    const rootState = this.#ensureState(root);
-    const stack: [source: EffectLike, parentState: RunState][] = [];
-    const pushChildren = (currentState: RunState) => {
-      currentState.source.args?.forEach((arg) => {
+    const rootRun = this.#ensureRun(root);
+    const stack: EffectLike[] = [];
+    const pushChildren = (current: Effect) => {
+      current.args?.forEach((arg) => {
         if (isEffectLike(arg)) {
-          stack.push([arg, currentState]);
+          stack.push(arg);
         }
       });
     };
-    pushChildren(rootState);
+    pushChildren(root);
     while (stack.length) {
-      const [currentSource, parentState] = stack.pop()!;
+      const currentSource = stack.pop()!;
       if (currentSource instanceof Name) {
-        stack.push([currentSource.root, parentState]);
+        stack.push(currentSource.root);
         continue;
       } else {
-        const currentState = this.#ensureState(currentSource);
-        currentState.dependents.add(parentState);
-        pushChildren(currentState);
+        this.#ensureRun(currentSource);
+        pushChildren(currentSource);
       }
     }
-    return rootState;
+    return rootRun;
   };
 
-  #ensureState = (source: Effect): RunState => {
-    let state = this.get(source.id);
-    if (!state) {
-      state = new RunState(this, source);
-      this.set(source.id, state);
-    }
-    return state;
-  };
-
-  state = (effect: EffectLike): RunState => {
+  run = (effect: EffectLike) => {
     return this.get(effect.id)!;
   };
 
   resolve = (x: unknown) => {
     return isEffectLike(x)
-      ? this.state(x)!.result
+      ? this.run(x)!()
       : isPlaceholder(x)
-      ? this.applies[x.key]
+      ? this.#applies[x.key]
       : x;
+  };
+
+  context = <T>(ctor: new() => T): T => {
+    let instance = this.#context.get(ctor) as undefined | T;
+    if (!instance) {
+      instance = new ctor();
+      this.#context.set(ctor, instance);
+    }
+    return instance;
   };
 }

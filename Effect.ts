@@ -1,5 +1,5 @@
 import { Placeholder } from "./Placeholder.ts";
-import { RunState } from "./Runtime.ts";
+import { Process } from "./Runtime.ts";
 import * as U from "./util/mod.ts";
 
 declare const T_: unique symbol;
@@ -19,23 +19,19 @@ export class Effect<
   declare [V_]: V;
 
   id;
-  dependencies = new Set<EffectLike>();
 
   constructor(
     readonly kind: string,
-    readonly run: (state: RunState) => unknown,
+    readonly run: EffectInitRun,
     readonly args?: unknown[],
   ) {
-    args?.forEach((arg) => {
-      if (isEffectLike(arg)) {
-        this.dependencies.add(arg);
-      }
-    });
     this.id = `${this.kind}(${
       this.args?.map(U.sig.of).join(",") || ""
     })` as EffectId;
   }
 }
+
+export type EffectInitRun = (process: Process) => () => unknown;
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
   abstract root: Root;

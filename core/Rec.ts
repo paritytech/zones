@@ -6,18 +6,20 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
 ): Effect<RecT<Fields>, E<Fields[keyof Fields]>, V<Fields[keyof Fields]>> {
   const keys = Object.keys(fields);
   const values = Object.values(fields);
-  return new Effect("Rec", ({ process }) => {
-    return U.thenOk(
-      U.all(...Object.values(fields).map(process.resolve)),
-      (values) => {
-        return keys.reduce((acc, cur, i) => {
-          return {
-            ...acc,
-            [cur]: values[i]!,
-          };
-        }, {});
-      },
-    );
+  return new Effect("Rec", (process) => {
+    return U.memo(() => {
+      return U.thenOk(
+        U.all(...Object.values(fields).map(process.resolve)),
+        (values) => {
+          return keys.reduce((acc, cur, i) => {
+            return {
+              ...acc,
+              [cur]: values[i]!,
+            };
+          }, {});
+        },
+      );
+    });
   }, [keys, values]);
 }
 

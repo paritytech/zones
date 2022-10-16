@@ -11,5 +11,5 @@ function if_<Condition extends $<boolean>, Then, Else = void>(
   E<Condition | Then | Else>,
   V<Condition | Then | Else>
 > {
-  return new Effect("If", () => {}, [condition, then, else_]);
+  return new Effect("If", () => () => {}, [condition, then, else_]);
 }

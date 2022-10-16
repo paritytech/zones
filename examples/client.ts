@@ -49,12 +49,13 @@ function call<
   method: Method,
   args: Args,
 ) {
+  const clientRc = Z.rc(client, method, ...args);
   return Z.call(
-    Z.ls(client, method, Z.ls(...args), Z.rc(client)),
+    Z.ls(client, method, Z.ls(...args), clientRc),
     async ([client, method, args, clientRc]) => {
       console.log("ENTER CALL");
       const result = await client.send(method, args);
-      if (clientRc?.() == 0) {
+      if (clientRc == 1) {
         console.log("CLOSE CLIENT");
         const maybeCloseError = await client.close();
         if (maybeCloseError instanceof Error) return maybeCloseError;

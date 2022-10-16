@@ -4,8 +4,10 @@ import * as U from "../util/mod.ts";
 export function ls<Elements extends unknown[]>(
   ...elements: Elements
 ): Effect<LsT<Elements>, E<Elements[number]>, V<Elements[number]>> {
-  return new Effect("Ls", ({ process }) => {
-    return U.all(...elements.map(process.resolve));
+  return new Effect("Ls", (process) => {
+    return U.memo(() => {
+      return U.all(...elements.map(process.resolve));
+    });
   }, elements);
 }
 

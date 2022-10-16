@@ -8,11 +8,10 @@ export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
   E<D> | Extract<Awaited<R>, Error>,
   V<D>
 > {
-  return new Effect("Call", (state) => {
-    return U.thenOk(
-      state.process.resolve(dep),
-      thrownAsUntypedError(logic),
-    );
+  return new Effect("Call", (process) => {
+    return U.memo(() => {
+      return U.thenOk(process.resolve(dep), thrownAsUntypedError(logic));
+    });
   }, [dep, logic]);
 }
 export namespace call {
