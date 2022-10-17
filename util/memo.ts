@@ -1,5 +1,5 @@
-export function memo(fn: () => unknown) {
-  let result: unknown;
+export function memo<T>(fn: () => T): () => T {
+  let result: T;
   return () => {
     if (!result) {
       result = fn();

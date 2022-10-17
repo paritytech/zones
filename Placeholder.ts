@@ -28,20 +28,6 @@ export interface PlaceholderApplied<P extends Placeholder = Placeholder> {
   value: ReturnType<P>;
 }
 
-export function flattenApplies<A extends PlaceholderApplied[]>(
-  ...applies: A
-): FlattenApplies<A[number]> {
-  return applies.reduce<Partial<FlattenApplies<A[number]>>>((acc, cur) => {
-    return {
-      ...acc,
-      [cur.placeholder.key]: cur.value,
-    };
-  }, {}) as FlattenApplies<A[number]>;
-}
-export type FlattenApplies<A extends PlaceholderApplied> = {
-  [K in A["placeholder"]["key"]]: A["value"];
-};
-
 /**
  * Appears as constraint in place of supplied `PlaceholderApplied` if there is more
  * than one of a specific placeholder's application in the applied collection
@@ -79,3 +65,12 @@ type _0<T extends PlaceholderApplied[]> = Parameters<
   >
 >[0];
 type _1<T> = T extends ((i: any) => void) ? T : never;
+
+export function flattenApplies(...applies: PlaceholderApplied[]) {
+  return applies.reduce((acc, cur) => {
+    return {
+      ...acc,
+      [cur.placeholder.key]: cur.value,
+    };
+  }, {});
+}

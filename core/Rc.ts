@@ -1,18 +1,21 @@
-import { E, Effect, V } from "../Effect.ts";
+import { E, Effect, EffectLike, T, V } from "../Effect.ts";
+import * as U from "../util/mod.ts";
 
-export function rc<Of>(
-  of: Of,
-  ...keys: unknown[]
-): Effect<number, E<Of>, V<Of>> {
+export function rc<Target, UseCountR extends EffectLike>(
+  target: Target,
+  produce: (count: number) => UseCountR,
+): Effect<T<UseCountR>, E<UseCountR>, V<UseCountR>> {
   return new Effect("Rc", (process) => {
     const rcContext = process.context(RcContext);
-    rcContext.increment(of);
+    rcContext.increment(target);
     return () => {
-      const current = rcContext.get(of)!;
-      rcContext.decrement(of);
-      return current;
+      const current = rcContext.get(target)!;
+      return U.then(process.init(produce(current))(), (result) => {
+        rcContext.decrement(target);
+        return result;
+      });
     };
-  }, [of, ...keys]);
+  }, [target, produce]);
 }
 
 class RcContext extends Map<unknown, number> {

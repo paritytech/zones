@@ -9,12 +9,7 @@ const second = Z._<number>()(second_);
 const third_ = Symbol();
 const third = Z._<boolean>()(third_);
 
-const run = Z.runtime({
-  // TODO: disable repeats
-  apply: [
-    first("HELLO"),
-  ],
-});
+const run = Z.runtime(first("HELLO"));
 
 const root = Z.call(Z.ls(first, second, third), ([first, second, third]) => {
   console.log({ first, second, third });

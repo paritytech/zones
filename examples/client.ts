@@ -49,20 +49,21 @@ function call<
   method: Method,
   args: Args,
 ) {
-  const clientRc = Z.rc(client, method, ...args);
-  return Z.call(
-    Z.ls(client, method, Z.ls(...args), clientRc),
-    async ([client, method, args, clientRc]) => {
-      console.log("ENTER CALL");
-      const result = await client.send(method, args);
-      if (clientRc == 1) {
-        console.log("CLOSE CLIENT");
-        const maybeCloseError = await client.close();
-        if (maybeCloseError instanceof Error) return maybeCloseError;
-      }
-      return result;
-    },
-  );
+  return Z.rc(client, (count) => {
+    return Z.call(
+      Z.ls(client, method, Z.ls(...args)),
+      async ([client, method, args]) => {
+        console.log("ENTER CALL");
+        const result = await client.send(method, args);
+        if (count == 1) {
+          console.log("CLOSE CLIENT");
+          const maybeCloseError = await client.close();
+          if (maybeCloseError instanceof Error) return maybeCloseError;
+        }
+        return result;
+      },
+    );
+  });
 }
 
 const root = call(client("wss://rpc.polkadot.io"), "someMethod", [1, 2, 3]);

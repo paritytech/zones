@@ -3,6 +3,7 @@ import * as U from "../util/mod.ts";
 
 export function rec<Fields extends Record<PropertyKey, unknown>>(
   fields: Fields,
+  // TODO: should the V be U2Ied?
 ): Effect<RecT<Fields>, E<Fields[keyof Fields]>, V<Fields[keyof Fields]>> {
   const keys = Object.keys(fields);
   const values = Object.values(fields);

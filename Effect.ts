@@ -1,5 +1,5 @@
 import { Placeholder } from "./Placeholder.ts";
-import { Process } from "./Runtime.ts";
+import { Process } from "./Process.ts";
 import * as U from "./util/mod.ts";
 
 declare const T_: unique symbol;
@@ -12,7 +12,7 @@ export type EffectId = U.sig.Signature & { [effectId]?: true };
 export class Effect<
   T = any,
   E extends Error = Error,
-  V extends Placeholder = Placeholder,
+  V extends PropertyKey = PropertyKey,
 > {
   declare [T_]: T;
   declare [E_]: E;
@@ -31,6 +31,7 @@ export class Effect<
   }
 }
 
+// TODO: make generic?
 export type EffectInitRun = (process: Process) => () => unknown;
 
 export abstract class Name<Root extends EffectLike = EffectLike> {
@@ -44,7 +45,7 @@ export abstract class Name<Root extends EffectLike = EffectLike> {
 export type EffectLike<
   T = any,
   E extends Error = Error,
-  V extends Placeholder = Placeholder,
+  V extends PropertyKey = PropertyKey,
 > = Effect<T, E, V> | Name<EffectLike<T, E, V>>;
 
 export function isEffectLike(inQuestion: unknown): inQuestion is EffectLike {
@@ -57,10 +58,7 @@ export type T<U> = U extends EffectLike<infer T> ? T
   : Exclude<Awaited<U>, Error>;
 export type E<U> = U extends EffectLike<any, infer E> ? E : never;
 export type V<U> = U extends EffectLike<any, Error, infer V> ? V
-  : U extends Placeholder ? U
+  : U extends Placeholder ? U["key"]
   : never;
 
-export type $<T> =
-  | T
-  | EffectLike<T, Error, Placeholder>
-  | Placeholder<PropertyKey, T>;
+export type $<T> = T | EffectLike<T> | Placeholder<PropertyKey, T>;
