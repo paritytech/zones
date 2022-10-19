@@ -1,15 +1,21 @@
-// TODO: utilize `Derive` under the hood
-import { $, E, Effect, T, V } from "../../Effect.ts";
+import { $, EffectLike } from "../../Effect.ts";
+import { derive } from "./Derive.ts";
 
-export { if_ as if };
-function if_<Condition extends $<boolean>, Then, Else = void>(
+function if_<
+  Condition extends $<boolean>,
+  Then extends EffectLike,
+  Else extends EffectLike,
+>(
   condition: Condition,
   then: Then,
   else_: Else = undefined!,
-): Effect<
-  T<Then | Else>,
-  E<Condition | Then | Else>,
-  V<Condition | Then | Else>
-> {
-  return new Effect("If", () => () => {}, [condition, then, else_]);
+) {
+  return derive(condition, (condition) => {
+    return condition ? then : else_;
+  });
 }
+Object.defineProperty(if_, "name", {
+  value: "if",
+  writable: false,
+});
+export { if_ as if };

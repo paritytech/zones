@@ -4,28 +4,26 @@ const placeholder_ = Symbol();
 
 export function _<T>() {
   return <Key extends PropertyKey>(key: Key): Placeholder<Key, T> => {
-    const placeholder = Object.assign((value: T) => {
-      return { placeholder, value };
-    }, { [placeholder_]: true as const, key });
-    return placeholder as any;
+    const placeholder: Placeholder<Key, T> = {
+      [placeholder_]: true,
+      key,
+      a: (value: T) => ({ [key]: value }) as Record<Key, T>,
+    };
+    return placeholder;
   };
 }
 
 export interface Placeholder<Key extends PropertyKey = PropertyKey, T = any> {
   [placeholder_]: true;
   key: Key;
-  (value: T): PlaceholderApplied<this>;
+  a: (value: T) => Record<Key, T>;
 }
 
 export function isPlaceholder(
   inQuestion: unknown,
 ): inQuestion is Placeholder {
-  return typeof inQuestion === "function" && placeholder_ in inQuestion;
-}
-
-export interface PlaceholderApplied<P extends Placeholder = Placeholder> {
-  placeholder: P;
-  value: ReturnType<P>;
+  return !!inQuestion && typeof inQuestion === "object"
+    && placeholder_ in inQuestion;
 }
 
 /**
@@ -38,25 +36,23 @@ export interface SoleApply {
 declare const soleApply_: unique symbol;
 
 export type EnsureSoleApplies<
-  Applies extends PlaceholderApplied[],
+  Applies extends Record<PropertyKey, unknown>[],
   SecondaryKey extends PropertyKey = never,
 > = {
-  [K in keyof Applies]: Applies[K]["placeholder"]["key"] extends SecondaryKey
-    ? SoleApply
+  [K in keyof Applies]: keyof Applies[K] extends SecondaryKey ? SoleApply
     : K extends _0<Applies> ? Applies[K]
     : SoleApply;
 };
 
 /** Produces a union of non-duplicated placeholder keys */
-type _0<T extends PlaceholderApplied[]> = Parameters<
+type _0<T extends Record<PropertyKey, unknown>[]> = Parameters<
   _1<
     U.ValueOf<
       U.U2I<
         U.ValueOf<
           {
             [K in keyof T as K extends `${number}` ? K : never]: T[K] extends
-              PlaceholderApplied<Placeholder<infer PK>>
-              ? { [_ in PK]: (key: K) => void }
+              Record<infer PK, any> ? { [_ in PK]: (key: K) => void }
               : never;
           }
         >
@@ -66,11 +62,11 @@ type _0<T extends PlaceholderApplied[]> = Parameters<
 >[0];
 type _1<T> = T extends ((i: any) => void) ? T : never;
 
-export function flattenApplies(...applies: PlaceholderApplied[]) {
+export function flattenApplies(...applies: Record<PropertyKey, unknown>[]) {
   return applies.reduce((acc, cur) => {
     return {
       ...acc,
-      [cur.placeholder.key]: cur.value,
+      ...cur,
     };
   }, {});
 }
