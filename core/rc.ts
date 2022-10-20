@@ -1,16 +1,19 @@
 import { E, Effect, V } from "../Effect.ts";
+import * as U from "../util/mod.ts";
 
 export function rc<Target, Keys extends unknown[]>(
   target: Target,
   ...keys: Keys
-): Effect<number, E<Target | Keys[number]>, V<Target | Keys[number]>> {
+): Effect<() => number, E<Target | Keys[number]>, V<Target | Keys[number]>> {
   return new Effect("Rc", (process) => {
     const rcContext = process.context(RcContext);
-    rcContext.increment(target);
+    rcContext.increment(U.sig.of(target));
     return () => {
-      const current = rcContext.get(target)!;
-      rcContext.decrement(target);
-      return current;
+      return () => {
+        const current = rcContext.get(U.sig.of(target))!;
+        rcContext.decrement(U.sig.of(target));
+        return current;
+      };
     };
   }, [target, ...keys]);
 }

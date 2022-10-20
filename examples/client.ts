@@ -31,13 +31,14 @@ class InnerClient {
 }
 
 function client<Url extends Z.$<string>>(url: Url) {
-  return Z.call(url, (url) => {
-    console.log("ENTER CLIENT");
-    if (false as boolean) {
-      return new ClientConnectError();
-    }
-    return new InnerClient(url);
-  });
+  return Z.call(url, clientImpl);
+}
+function clientImpl(url: string) {
+  console.log("ENTER CLIENT");
+  if (false as boolean) {
+    return new ClientConnectError();
+  }
+  return new InnerClient(url);
 }
 
 function call<
@@ -55,7 +56,7 @@ function call<
     async ([[client, method, args], count]) => {
       console.log("ENTER CALL");
       const result = await client.send(method, args);
-      if (count == 1) {
+      if (count() == 1) {
         console.log("CLOSE CLIENT");
         const maybeCloseError = await client.close();
         if (maybeCloseError instanceof Error) return maybeCloseError;

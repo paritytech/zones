@@ -16,9 +16,10 @@ export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
 }
 export namespace call {
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
+    const fnWrapped = ((a: A) => fn(...a));
     return <X extends Ls$<A>>(...args: X) => {
       const dep = ls(...args);
-      return call(dep, ((a: A) => fn(...a)) as CallLogic<typeof dep, R>);
+      return call(dep, fnWrapped as CallLogic<typeof dep, R>);
     };
   }
 

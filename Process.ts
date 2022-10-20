@@ -8,40 +8,27 @@ export class Process extends Map<EffectId, () => unknown> {
     super();
   }
 
-  #ensureRun = (source: Effect) => {
-    let run = this.get(source.id);
-    if (!run) {
-      run = source.run(this);
-      this.set(source.id, run);
-    }
-    return run;
-  };
-
   init = (root: EffectLike) => {
-    while (root instanceof Name) {
-      root = root.root;
-    }
-    const stack: EffectLike[] = [];
-    const rootRun = this.#ensureRun(root);
-    const pushChildren = (current: Effect) => {
-      current.args?.forEach((arg) => {
-        if (isEffectLike(arg)) {
-          stack.push(arg);
-        }
-      });
-    };
-    pushChildren(root);
+    const stack: EffectLike[] = [root];
     while (stack.length) {
       const currentSource = stack.pop()!;
       if (currentSource instanceof Name) {
         stack.push(currentSource.root);
         continue;
       } else {
-        this.#ensureRun(currentSource);
-        pushChildren(currentSource);
+        let run = this.get(currentSource.id);
+        if (!run) {
+          run = currentSource.run(this);
+          this.set(currentSource.id, run);
+          currentSource.args?.forEach((arg) => {
+            if (isEffectLike(arg)) {
+              stack.push(arg);
+            }
+          });
+        }
       }
     }
-    return rootRun;
+    return this.get(root.id)!;
   };
 
   run = (effect: EffectLike) => {
