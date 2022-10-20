@@ -1,6 +1,6 @@
-import { $, EffectLike, T } from "../../Effect.ts";
-import { ls } from "../Ls.ts";
-import { derive } from "./Derive.ts";
+import { $, EffectLike, T } from "../Effect.ts";
+import { derive } from "./derive.ts";
+import { ls } from "./ls.ts";
 
 export function each<
   Elements extends $<unknown[]>,

@@ -1,5 +1,5 @@
-import { $, EffectLike } from "../../Effect.ts";
-import { derive } from "./Derive.ts";
+import { $, EffectLike } from "../Effect.ts";
+import { derive } from "./derive.ts";
 
 function if_<
   Condition extends $<boolean>,

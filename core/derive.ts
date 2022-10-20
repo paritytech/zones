@@ -1,6 +1,6 @@
-import { E, Effect, EffectLike, T, V } from "../../Effect.ts";
-import { thrownAsUntypedError } from "../../Error.ts";
-import * as U from "../../util/mod.ts";
+import { E, Effect, EffectLike, T, V } from "../Effect.ts";
+import { thrownAsUntypedError } from "../Error.ts";
+import * as U from "../util/mod.ts";
 
 export function derive<Target, UseResult extends EffectLike>(
   from: Target,

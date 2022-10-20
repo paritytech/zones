@@ -1,7 +1,7 @@
 import { E, Effect, T, V } from "../Effect.ts";
 import { thrownAsUntypedError } from "../Error.ts";
 import * as U from "../util/mod.ts";
-import { ls, Ls$ } from "./Ls.ts";
+import { ls, Ls$ } from "./ls.ts";
 
 export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
   Exclude<Awaited<R>, Error>,
