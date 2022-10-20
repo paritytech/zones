@@ -1,4 +1,4 @@
-import { derive } from "../core/unsafe/Derive.ts";
+import { derive } from "../core/derive.ts";
 import * as Z from "../mod.ts";
 
 const coinToss = Z.call(0, () => {
