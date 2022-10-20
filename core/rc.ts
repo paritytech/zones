@@ -7,12 +7,11 @@ export function rc<Target, Keys extends unknown[]>(
 ): Effect<() => number, E<Target | Keys[number]>, V<Target | Keys[number]>> {
   return new Effect("Rc", (process) => {
     const rcContext = process.context(RcContext);
-    rcContext.increment(U.sig.of(target));
+    const sig = U.sig.of(target);
+    rcContext.increment(sig);
     return () => {
       return () => {
-        const current = rcContext.get(U.sig.of(target))!;
-        rcContext.decrement(U.sig.of(target));
-        return current;
+        return rcContext.decrement(sig);
       };
     };
   }, [target, ...keys]);
@@ -29,6 +28,8 @@ class RcContext extends Map<unknown, number> {
   };
 
   decrement = (target: unknown) => {
-    this.set(target, this.get(target)! - 1);
+    const current = this.get(target)!;
+    this.set(target, current - 1);
+    return current;
   };
 }

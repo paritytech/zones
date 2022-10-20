@@ -2,7 +2,7 @@ import { Effect, EffectId, EffectLike, isEffectLike, Name } from "./Effect.ts";
 import { isPlaceholder } from "./Placeholder.ts";
 
 export class Process extends Map<EffectId, () => unknown> {
-  #context = new Map<new() => unknown, unknown>();
+  #context = new WeakMap<new() => unknown, unknown>();
 
   constructor(private applies: Record<PropertyKey, unknown>) {
     super();
