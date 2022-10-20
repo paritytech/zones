@@ -1,7 +1,7 @@
-import { Effect, EffectId, EffectLike, isEffectLike, Name } from "./Effect.ts";
+import { EffectLike, isEffectLike, Name } from "./Effect.ts";
 import { isPlaceholder } from "./Placeholder.ts";
 
-export class Process extends Map<EffectId, () => unknown> {
+export class Process extends Map<string, () => unknown> {
   #context = new WeakMap<new() => unknown, unknown>();
 
   constructor(private applies: Record<PropertyKey, unknown>) {
@@ -20,7 +20,7 @@ export class Process extends Map<EffectId, () => unknown> {
         if (!run) {
           run = currentSource.run(this);
           this.set(currentSource.id, run);
-          currentSource.args?.forEach((arg) => {
+          currentSource.children?.forEach((arg) => {
             if (isEffectLike(arg)) {
               stack.push(arg);
             }

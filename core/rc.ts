@@ -7,7 +7,7 @@ export function rc<Target, Keys extends unknown[]>(
 ): Effect<() => number, E<Target | Keys[number]>, V<Target | Keys[number]>> {
   return new Effect("Rc", (process) => {
     const rcContext = process.context(RcContext);
-    const sig = U.sig.of(target);
+    const sig = U.id.of(target);
     rcContext.increment(sig);
     return () => {
       return () => {

@@ -31,14 +31,13 @@ class InnerClient {
 }
 
 function client<Url extends Z.$<string>>(url: Url) {
-  return Z.call(url, clientImpl);
-}
-function clientImpl(url: string) {
-  console.log("ENTER CLIENT");
-  if (false as boolean) {
-    return new ClientConnectError();
-  }
-  return new InnerClient(url);
+  return Z.call(url, function clientImpl(url) {
+    console.log("ENTER CLIENT");
+    if (false as boolean) {
+      return new ClientConnectError();
+    }
+    return new InnerClient(url);
+  });
 }
 
 function call<
@@ -66,10 +65,9 @@ function call<
   );
 }
 
-const client_ = client("wss://rpc.polkadot.io");
-const callA = call(client_, "someMethodA", [1, 2, 3]);
-const callB = call(client_, "someMethodB", [4, 5, 6]);
-const callC = call(client_, "someMethodC", [7, 8, 9]);
+const callA = call(client("wss://rpc.polkadot.io"), "someMethodA", [1, 2, 3]);
+const callB = call(client("wss://rpc.polkadot.io"), "someMethodB", [4, 5, 6]);
+const callC = call(client("wss://rpc.polkadot.io"), "someMethodC", [7, 8, 9]);
 
 const result = await Z.runtime()(Z.ls(callA, callB, callC));
 

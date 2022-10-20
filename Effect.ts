@@ -6,9 +6,6 @@ declare const T_: unique symbol;
 declare const E_: unique symbol;
 declare const V_: unique symbol;
 
-declare const effectId: unique symbol;
-export type EffectId = U.sig.Signature & { [effectId]?: true };
-
 export class Effect<
   T = any,
   E extends Error = Error,
@@ -23,11 +20,9 @@ export class Effect<
   constructor(
     readonly kind: string,
     readonly run: EffectInitRun,
-    readonly args?: unknown[],
+    readonly children?: unknown[],
   ) {
-    this.id = `${this.kind}(${
-      this.args?.map(U.sig.of).join(",") || ""
-    })` as EffectId;
+    this.id = `${this.kind}(${this.children?.map(U.id.of).join(",") || ""})`;
   }
 }
 
@@ -37,7 +32,7 @@ export type EffectInitRun = (process: Process) => () => unknown;
 export abstract class Name<Root extends EffectLike = EffectLike> {
   abstract root: Root;
 
-  get id(): EffectId {
+  get id(): string {
     return this.root.id;
   }
 }
