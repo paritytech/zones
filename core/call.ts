@@ -18,7 +18,7 @@ export namespace call {
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
     return <X extends Ls$<A>>(...args: X) => {
       const dep = ls(...args);
-      return call(dep, fn as unknown as CallLogic<typeof dep, R>);
+      return call(dep, ((a: A) => fn(...a)) as CallLogic<typeof dep, R>);
     };
   }
 
