@@ -3,11 +3,10 @@ import { thrownAsUntypedError } from "../Error.ts";
 import * as U from "../util/mod.ts";
 import { ls, Ls$ } from "./ls.ts";
 
-export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
-  Exclude<Awaited<R>, Error>,
-  E<D> | Extract<Awaited<R>, Error>,
-  V<D>
-> {
+export function call<D, R>(
+  dep: D,
+  logic: CallLogic<D, R>,
+): Effect<Exclude<Awaited<R>, Error>, E<D> | Extract<Awaited<R>, Error>, V<D>> {
   return new Effect("Call", (process) => {
     return U.memo(() => {
       return U.thenOk(process.resolve(dep), thrownAsUntypedError(logic));

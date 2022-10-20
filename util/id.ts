@@ -1,10 +1,7 @@
 import { isEffectLike } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
-declare const signature_: unique symbol;
-export type Signature = string & { [signature_]?: true };
-
-class SignatureFactory<T> {
+class IdFactory<T> {
   #i = 0;
 
   constructor(
@@ -23,19 +20,22 @@ class SignatureFactory<T> {
 }
 
 export const strongContainer = new Map();
-export const strong = new SignatureFactory("strong", strongContainer);
-export const weak = new SignatureFactory("weak", new WeakMap());
+export const strong = new IdFactory("strong", strongContainer);
+export const weak = new IdFactory("weak", new WeakMap());
 
-export function of(target: unknown): Signature {
+export function of(target: unknown): string {
   switch (typeof target) {
     case "function": {
-      return weak.of(target as (...args: any[]) => any);
+      if (!target.name) {
+        return weak.of(target as (...args: any[]) => any);
+      }
+      return `fn(${target.name})`;
     }
     case "object": {
       if (isEffectLike(target)) {
         return target.id;
       } else if (target === null) {
-        return "null" as Signature;
+        return "null";
       }
       return weak.of(target);
     }
