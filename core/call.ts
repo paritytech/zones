@@ -1,7 +1,7 @@
 import { E, Effect, T, V } from "../Effect.ts";
 import { thrownAsUntypedError } from "../Error.ts";
 import * as U from "../util/mod.ts";
-import { ls, Ls$ } from "./Ls.ts";
+import { ls, Ls$ } from "./ls.ts";
 
 export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
   Exclude<Awaited<R>, Error>,
@@ -16,9 +16,10 @@ export function call<D, R>(dep: D, logic: CallLogic<D, R>): Effect<
 }
 export namespace call {
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
+    const fnWrapped = ((a: A) => fn(...a));
     return <X extends Ls$<A>>(...args: X) => {
       const dep = ls(...args);
-      return call(dep, fn as unknown as CallLogic<typeof dep, R>);
+      return call(dep, fnWrapped as CallLogic<typeof dep, R>);
     };
   }
 

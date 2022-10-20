@@ -31,13 +31,14 @@ class InnerClient {
 }
 
 function client<Url extends Z.$<string>>(url: Url) {
-  return Z.call(url, (url) => {
-    console.log("ENTER CLIENT");
-    if (false as boolean) {
-      return new ClientConnectError();
-    }
-    return new InnerClient(url);
-  });
+  return Z.call(url, clientImpl);
+}
+function clientImpl(url: string) {
+  console.log("ENTER CLIENT");
+  if (false as boolean) {
+    return new ClientConnectError();
+  }
+  return new InnerClient(url);
 }
 
 function call<
@@ -49,25 +50,27 @@ function call<
   method: Method,
   args: Args,
 ) {
-  return Z.rc(client, (count) => {
-    return Z.call(
-      Z.ls(client, method, Z.ls(...args)),
-      async ([client, method, args]) => {
-        console.log("ENTER CALL");
-        const result = await client.send(method, args);
-        if (count == 1) {
-          console.log("CLOSE CLIENT");
-          const maybeCloseError = await client.close();
-          if (maybeCloseError instanceof Error) return maybeCloseError;
-        }
-        return result;
-      },
-    );
-  });
+  const deps = Z.ls(client, method, Z.ls(...args));
+  return Z.call(
+    Z.ls(deps, Z.rc(client, deps)),
+    async ([[client, method, args], count]) => {
+      console.log("ENTER CALL");
+      const result = await client.send(method, args);
+      if (count() == 1) {
+        console.log("CLOSE CLIENT");
+        const maybeCloseError = await client.close();
+        if (maybeCloseError instanceof Error) return maybeCloseError;
+      }
+      return result;
+    },
+  );
 }
 
-const root = call(client("wss://rpc.polkadot.io"), "someMethod", [1, 2, 3]);
+const client_ = client("wss://rpc.polkadot.io");
+const callA = call(client_, "someMethodA", [1, 2, 3]);
+const callB = call(client_, "someMethodB", [4, 5, 6]);
+const callC = call(client_, "someMethodC", [7, 8, 9]);
 
-const result = await Z.runtime()(root);
+const result = await Z.runtime()(Z.ls(callA, callB, callC));
 
 console.log(U.throwIfError(result));

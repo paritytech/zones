@@ -28,3 +28,7 @@ export type Rec$<Fields> = { [K in keyof Fields]: $<Fields[K]> };
 export type RecT<Fields extends Record<PropertyKey, unknown>> = {
   [K in keyof Fields]: T<Fields[K]>;
 };
+
+export type Rec$Access<T extends Record<PropertyKey, unknown>> = {
+  [K in keyof T]: T[K];
+};
