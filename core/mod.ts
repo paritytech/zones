@@ -1,4 +1,5 @@
 export * from "./call.ts";
+export * from "./each.ts";
 export * from "./if.ts";
 export * from "./ls.ts";
 export * from "./rc.ts";
