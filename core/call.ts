@@ -7,11 +7,12 @@ export function call<D, R>(
   dep: D,
   logic: CallLogic<D, R>,
 ): Effect<Exclude<Awaited<R>, Error>, E<D> | Extract<Awaited<R>, Error>, V<D>> {
-  return new Effect("Call", (process) => {
-    return U.memo(() => {
-      return U.thenOk(process.resolve(dep), thrownAsUntypedError(logic));
+  const e = new Effect("Call", (process) => {
+    return U.memo((): unknown => {
+      return U.thenOk(process.resolve(dep), thrownAsUntypedError(e, logic));
     });
   }, [dep, logic]);
+  return e as any;
 }
 export namespace call {
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {

@@ -12,14 +12,15 @@ export function derive<Target, UseResult extends EffectLike>(
   | E<Extract<Awaited<UseResult>, EffectLike>>,
   V<Target> | V<Awaited<UseResult>>
 > {
-  return new Effect("Derive", (process) => {
-    return () => {
+  const e = new Effect("Derive", (process) => {
+    return (): unknown => {
       return U.thenOk(
-        U.then(process.resolve(from), thrownAsUntypedError(into)),
+        U.then(process.resolve(from), thrownAsUntypedError(e, into)),
         (e) => process.init(e)(),
       );
     };
   }, [from, into]);
+  return e as any;
 }
 
 export type DeriveResult = Error | EffectLike | Promise<Error | EffectLike>;
