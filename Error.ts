@@ -1,3 +1,5 @@
+import { Effect } from "./Effect.ts";
+
 export class RuneError<Name extends string> extends Error {
   override readonly name: `${Name}RuneError`;
   constructor(
@@ -10,12 +12,19 @@ export class RuneError<Name extends string> extends Error {
 }
 
 export class UntypedError extends RuneError<"Untyped"> {
-  constructor(readonly thrown: unknown) {
-    super("Untyped", "TODO");
+  constructor(
+    readonly source: Effect,
+    readonly thrown: unknown,
+  ) {
+    super(
+      "Untyped",
+      "An untyped error was thrown from the execution of an effect",
+    );
   }
 }
 
 export function thrownAsUntypedError<F extends (...args: any[]) => unknown>(
+  source: Effect,
   run: F,
 ): F & ((...args: any) => ReturnType<F> | UntypedError) {
   return ((...args: unknown[]) => {
@@ -26,13 +35,13 @@ export function thrownAsUntypedError<F extends (...args: any[]) => unknown>(
           try {
             return await runResult;
           } catch (e) {
-            return new UntypedError(e);
+            return new UntypedError(source, e);
           }
         })();
       }
       return runResult;
     } catch (e) {
-      return new UntypedError(e);
+      return new UntypedError(source, e);
     }
   }) as F & ((...args: any) => ReturnType<F> | UntypedError);
 }
