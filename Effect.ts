@@ -24,36 +24,34 @@ export class Effect<
   ) {
     this.id = `${this.kind}(${this.children?.map(U.id.of).join(",") || ""})`;
   }
+
+  access = <K extends $<keyof T>>(
+    key: K,
+  ): Effect<T[U.AssertKeyof<T, K>], E, V> => {
+    return new Effect("Access", (process) => {
+      return U.memo(() => {
+        return U.thenOk(
+          U.all(process.resolve(this), process.resolve(key)),
+          ([target, key]) => target[key],
+        );
+      });
+    }, [this, key]);
+  };
+
+  as = <Satisfies extends T>() => {
+    return this as unknown as Effect<Satisfies, E, V>;
+  };
 }
 
 // TODO: make generic?
 export type EffectInitRun = (process: Process) => () => unknown;
 
-export abstract class Name<Root extends EffectLike = EffectLike> {
-  abstract root: Root;
-
-  get id(): string {
-    return this.root.id;
-  }
-}
-
-export type EffectLike<
-  T = any,
-  E extends Error = Error,
-  V extends PropertyKey = PropertyKey,
-> = Effect<T, E, V> | Name<EffectLike<T, E, V>>;
-
-export function isEffectLike(inQuestion: unknown): inQuestion is EffectLike {
-  return inQuestion instanceof Effect || inQuestion instanceof Name;
-}
-
-// TODO: fully ensure no promises-wrappers/errors
-export type T<U> = U extends EffectLike<infer T> ? T
+export type T<U> = U extends Effect<infer T> ? T
   : U extends Placeholder<PropertyKey, infer T> ? T
   : Exclude<Awaited<U>, Error>;
-export type E<U> = U extends EffectLike<any, infer E> ? E : never;
-export type V<U> = U extends EffectLike<any, Error, infer V> ? V
+export type E<U> = U extends Effect<any, infer E> ? E : never;
+export type V<U> = U extends Effect<any, Error, infer V> ? V
   : U extends Placeholder ? U["key"]
   : never;
 
-export type $<T> = T | EffectLike<T> | Placeholder<PropertyKey, T>;
+export type $<T> = T | Effect<T> | Placeholder<PropertyKey, T>;

@@ -1,4 +1,4 @@
-import { E, EffectLike, T, V } from "./Effect.ts";
+import { E, Effect, T, V } from "./Effect.ts";
 import { UntypedError } from "./Error.ts";
 import { EnsureSoleApplies, flattenApplies } from "./Placeholder.ts";
 import { Process } from "./Process.ts";
@@ -17,7 +17,7 @@ export function runtime<Applies extends Record<PropertyKey, unknown>[]>(
 }
 
 export interface Runtime<Applies extends PropertyKey> {
-  <Root extends EffectLike>(
+  <Root extends Effect>(
     root: Root,
     ...[apply]: [Exclude<V<Root>, Applies>] extends [never] ? []
       : [useApplies: UseApplies<V<Root>, Applies>]

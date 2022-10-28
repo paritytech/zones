@@ -1,4 +1,4 @@
-import { derive } from "../core/derive.ts";
+import { derive } from "../effects/derive.ts";
 import * as Z from "../mod.ts";
 
 const coinToss = Z.call(0, () => {
@@ -6,9 +6,7 @@ const coinToss = Z.call(0, () => {
 });
 
 const root = derive(coinToss, (truth) => {
-  return truth
-    ? Z.call(undefined!, () => "HELLO")
-    : Z.call(undefined!, () => "GOODBYE");
+  return Z.call(undefined!, () => truth ? "HELLO" : "GOODBYE");
 });
 
 const result = await Z.runtime()(root);
