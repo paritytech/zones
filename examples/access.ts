@@ -8,7 +8,7 @@ const x = Z.call(0, () => {
   } as const;
 });
 
-const y = Z.sel(x, "b");
+const y = x.access("b");
 
 const result = Z.runtime()(y);
 

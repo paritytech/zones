@@ -1,4 +1,4 @@
-import { EffectLike, isEffectLike, Name } from "./Effect.ts";
+import { Effect } from "./Effect.ts";
 import { isPlaceholder } from "./Placeholder.ts";
 
 export class Process extends Map<string, () => unknown> {
@@ -8,35 +8,30 @@ export class Process extends Map<string, () => unknown> {
     super();
   }
 
-  init = (root: EffectLike) => {
-    const stack: EffectLike[] = [root];
+  init = (root: Effect) => {
+    const stack: Effect[] = [root];
     while (stack.length) {
       const currentSource = stack.pop()!;
-      if (currentSource instanceof Name) {
-        stack.push(currentSource.root);
-        continue;
-      } else {
-        let run = this.get(currentSource.id);
-        if (!run) {
-          run = currentSource.run(this);
-          this.set(currentSource.id, run);
-          currentSource.children?.forEach((arg) => {
-            if (isEffectLike(arg)) {
-              stack.push(arg);
-            }
-          });
-        }
+      let run = this.get(currentSource.id);
+      if (!run) {
+        run = currentSource.run(this);
+        this.set(currentSource.id, run);
+        currentSource.children?.forEach((arg) => {
+          if (arg instanceof Effect) {
+            stack.push(arg);
+          }
+        });
       }
     }
     return this.get(root.id)!;
   };
 
-  run = (effect: EffectLike) => {
+  run = (effect: Effect) => {
     return this.get(effect.id)!;
   };
 
   resolve = (x: unknown) => {
-    return isEffectLike(x)
+    return x instanceof Effect
       ? this.run(x)!()
       : isPlaceholder(x)
       ? this.applies[x.key]
