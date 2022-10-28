@@ -38,8 +38,8 @@ export class Effect<
     }, [this, key]);
   };
 
-  as = <Satisfies extends T>() => {
-    return this as unknown as Effect<Satisfies, E, V>;
+  as = <U extends T>() => {
+    return this as unknown as Effect<U, E, V>;
   };
 }
 
