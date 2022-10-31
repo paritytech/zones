@@ -1,4 +1,4 @@
-import { E, Effect, T, V } from "../Effect.ts";
+import { E, Effect, V } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 import { LsT } from "./ls.ts";
 
@@ -20,7 +20,10 @@ export function rc<Keys extends [target: unknown, ...keys: unknown[]]>(
     }
     counter.i += 1;
     return () => {
-      return [keys.map(process.resolve), counter!];
+      return U.thenOk(
+        U.all(...keys.map(process.resolve)),
+        (keys) => [keys, counter!],
+      );
     };
   }, keys);
 }
