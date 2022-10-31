@@ -4,7 +4,7 @@ import * as U from "../util/mod.ts";
 class ClientConnectError extends Error {
   override readonly name = "ClientConnectError";
 }
-class ClientDisconnectError extends Error {
+class _ClientDisconnectError extends Error {
   override readonly name = "ClientDisconnectError";
 }
 
@@ -12,7 +12,7 @@ class ClientDisconnectError extends Error {
 class InnerClient {
   constructor(readonly discoveryValue: string) {}
 
-  close = (): Promise<void | ClientDisconnectError> => {
+  close = (): Promise<void | _ClientDisconnectError> => {
     return new Promise<void>((resolve) => {
       setTimeout(resolve, 1000);
     });
@@ -49,13 +49,13 @@ function call<
   method: Method,
   args: Args,
 ) {
-  const deps = Z.ls(client, method, Z.ls(...args));
   return Z.call(
-    Z.ls(deps, Z.rc(client, deps)),
-    async ([[client, method, args], count]) => {
+    Z.rc(client, method, ...args),
+    async ([[client, method, ...args], counter]) => {
       console.log("ENTER CALL");
       const result = await client.send(method, args);
-      if (count() == 1) {
+      if (counter.i === 1) {
+        counter.i--;
         console.log("CLOSE CLIENT");
         const maybeCloseError = await client.close();
         if (maybeCloseError instanceof Error) return maybeCloseError;

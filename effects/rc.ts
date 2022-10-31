@@ -1,35 +1,30 @@
-import { E, Effect, V } from "../Effect.ts";
+import { E, Effect, T, V } from "../Effect.ts";
 import * as U from "../util/mod.ts";
+import { LsT } from "./ls.ts";
 
-export function rc<Target, Keys extends unknown[]>(
-  target: Target,
+export type RcT<Keys extends [target: unknown, ...keys: unknown[]]> = [
+  LsT<Keys>,
+  Counter,
+];
+
+export function rc<Keys extends [target: unknown, ...keys: unknown[]]>(
   ...keys: Keys
-): Effect<() => number, E<Target | Keys[number]>, V<Target | Keys[number]>> {
+): Effect<RcT<Keys>, E<Keys[number]>, V<Keys[number]>> {
   return new Effect("Rc", (process) => {
-    const rcContext = process.context(RcContext);
-    const sig = U.id.of(target);
-    rcContext.increment(sig);
-    return () => {
-      return () => {
-        return rcContext.decrement(sig);
-      };
-    };
-  }, [target, ...keys]);
-}
-
-class RcContext extends Map<unknown, number> {
-  increment = (target: unknown) => {
-    const current = this.get(target);
-    if (current) {
-      this.set(target, current + 1);
-    } else {
-      this.set(target, 1);
+    const rcContext = process.context(Counters);
+    const sig = U.id.of(keys[0]);
+    let counter = rcContext.get(sig);
+    if (!counter) {
+      counter = new Counter();
+      rcContext.set(sig, counter);
     }
-  };
-
-  decrement = (target: unknown) => {
-    const current = this.get(target)!;
-    this.set(target, current - 1);
-    return current;
-  };
+    counter.i += 1;
+    return () => {
+      return [keys.map(process.resolve), counter!];
+    };
+  }, keys);
 }
+
+// @dprint-ignore-next-line
+export class Counter { i = 1 }
+export class Counters extends Map<string, Counter> {}
