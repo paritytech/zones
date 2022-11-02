@@ -1,6 +1,6 @@
 import { Effect } from "./Effect.ts";
 
-export class RuneError<Name extends string> extends Error {
+export class ZonesError<Name extends string> extends Error {
   override readonly name: `${Name}RuneError`;
   constructor(
     name: Name,
@@ -11,7 +11,7 @@ export class RuneError<Name extends string> extends Error {
   }
 }
 
-export class UntypedError extends RuneError<"Untyped"> {
+export class UntypedZonesError extends ZonesError<"Untyped"> {
   constructor(
     readonly source: Effect,
     readonly thrown: unknown,
@@ -26,7 +26,7 @@ export class UntypedError extends RuneError<"Untyped"> {
 export function thrownAsUntypedError<F extends (...args: any[]) => unknown>(
   source: Effect,
   run: F,
-): F & ((...args: any) => ReturnType<F> | UntypedError) {
+): F & ((...args: any) => ReturnType<F> | UntypedZonesError) {
   return ((...args: unknown[]) => {
     try {
       const runResult = run(...args);
@@ -35,13 +35,13 @@ export function thrownAsUntypedError<F extends (...args: any[]) => unknown>(
           try {
             return await runResult;
           } catch (e) {
-            return new UntypedError(source, e);
+            return new UntypedZonesError(source, e);
           }
         })();
       }
       return runResult;
     } catch (e) {
-      return new UntypedError(source, e);
+      return new UntypedZonesError(source, e);
     }
-  }) as F & ((...args: any) => ReturnType<F> | UntypedError);
+  }) as F & ((...args: any) => ReturnType<F> | UntypedZonesError);
 }
