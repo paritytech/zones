@@ -41,9 +41,12 @@ export class Effect<
   as = <U extends T>() => {
     return this as unknown as Effect<U, E, V>;
   };
+
+  excludeError = <C extends E>() => {
+    return this as unknown as Effect<T, Exclude<E, C>, V>;
+  };
 }
 
-// TODO: make generic?
 export type EffectInitRun = (process: Process) => () => unknown;
 
 export type T<U> = U extends Effect<infer T> ? T

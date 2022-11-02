@@ -1,5 +1,5 @@
 import { E, Effect, T, V } from "./Effect.ts";
-import { UntypedError } from "./Error.ts";
+import { UntypedZonesError } from "./Error.ts";
 import { EnsureSoleApplies, flattenApplies } from "./Placeholder.ts";
 import { Process } from "./Process.ts";
 import * as U from "./util/mod.ts";
@@ -21,7 +21,7 @@ export interface Runtime<Applies extends PropertyKey> {
     root: Root,
     ...[apply]: [Exclude<V<Root>, Applies>] extends [never] ? []
       : [useApplies: UseApplies<V<Root>, Applies>]
-  ): Promise<E<Root> | UntypedError | T<Root>>;
+  ): Promise<E<Root> | UntypedZonesError | T<Root>>;
 }
 
 type UseApplies<V extends PropertyKey, G extends PropertyKey> = (
