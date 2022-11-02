@@ -1,13 +1,13 @@
 import { Effect } from "./Effect.ts";
 
 export class ZonesError<Name extends string> extends Error {
-  override readonly name: `${Name}RuneError`;
+  override readonly name: `${Name}ZonesError`;
   constructor(
     name: Name,
     message: string,
   ) {
     super(message);
-    this.name = `${name}RuneError`;
+    this.name = `${name}ZonesError`;
   }
 }
 
