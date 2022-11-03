@@ -1,4 +1,4 @@
-import { Effect } from "../Effect.ts";
+import { isEffect } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 class IdFactory<T> {
@@ -32,7 +32,7 @@ export function of(target: unknown): string {
       return `fn(${target.name})`;
     }
     case "object": {
-      if (target instanceof Effect) {
+      if (isEffect(target)) {
         return target.id;
       } else if (target === null) {
         return "null";

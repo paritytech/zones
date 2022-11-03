@@ -1,4 +1,4 @@
-import { Effect } from "./Effect.ts";
+import { Effect, isEffect } from "./Effect.ts";
 import { isPlaceholder } from "./Placeholder.ts";
 
 export class Process extends Map<string, () => unknown> {
@@ -17,7 +17,7 @@ export class Process extends Map<string, () => unknown> {
         run = currentSource.run(this);
         this.set(currentSource.id, run);
         currentSource.children?.forEach((arg) => {
-          if (arg instanceof Effect) {
+          if (isEffect(arg)) {
             stack.push(arg);
           }
         });
@@ -31,7 +31,7 @@ export class Process extends Map<string, () => unknown> {
   };
 
   resolve = (x: unknown) => {
-    return x instanceof Effect
+    return isEffect(x)
       ? this.run(x)!()
       : isPlaceholder(x)
       ? this.applies[x.key]
