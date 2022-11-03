@@ -1,4 +1,4 @@
-import { E, Effect, T, V } from "../Effect.ts";
+import { E, Effect, effect, T, V } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 // TODO: fix this
@@ -13,11 +13,15 @@ export function try_<
   Extract<Awaited<FallbackR>, Error>,
   V<Attempt>
 > {
-  return new Effect("Try", (process) => {
-    return U.memo(() => {
-      return U.thenErr(process.get(attempt.id)!(), fallback);
-    });
-  }, [attempt, fallback]);
+  return effect({
+    kind: "Try",
+    run: (process) => {
+      return U.memo(() => {
+        return U.thenErr(process.get(attempt.id)!(), fallback);
+      });
+    },
+    args: [attempt, fallback],
+  });
 }
 Object.defineProperty(try_, "name", {
   value: "try",
