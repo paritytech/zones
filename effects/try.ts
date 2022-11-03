@@ -20,7 +20,7 @@ export function try_<
         return U.thenErr(process.get(attempt.id)!(), fallback);
       });
     },
-    children: [attempt, fallback],
+    args: [attempt, fallback],
   });
 }
 Object.defineProperty(try_, "name", {

@@ -15,6 +15,6 @@ export function wrap<Target extends $<object>, Key extends $<string>>(
         );
       });
     },
-    children: [target, key],
+    args: [target, key],
   });
 }

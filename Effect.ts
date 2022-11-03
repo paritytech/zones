@@ -3,18 +3,22 @@ import { Process } from "./Process.ts";
 import * as U from "./util/mod.ts";
 
 export interface EffectProps {
+  /** A human-readable name for this type of Effect */
   readonly kind: string;
+  /** Any arguments (such as child Effects) used in the construction this effect */
+  readonly args?: unknown[];
+  /** The Effect-specific runtime behavior */
   readonly run: EffectInitRun;
-  readonly children?: unknown[];
 }
 
+/** A factory with which to create effects */
 export function effect<T, E extends Error, V extends PropertyKey>(
   props: EffectProps,
 ): Effect<T, E, V> {
   return {
     ...props,
     [effect_]: {} as EffectChannels<T, E, V>,
-    id: `${props.kind}(${props.children?.map(U.id.of).join(",") || ""})`,
+    id: `${props.kind}(${props.args?.map(U.id.of).join(",") || ""})`,
     access(key) {
       return effect({
         kind: "Access",
@@ -26,7 +30,7 @@ export function effect<T, E extends Error, V extends PropertyKey>(
             );
           });
         },
-        children: [this, key],
+        args: [this, key],
       });
     },
     as<U extends T>() {
@@ -62,8 +66,11 @@ declare const T_: unique symbol;
 declare const E_: unique symbol;
 declare const V_: unique symbol;
 export type EffectChannels<T, E extends Error, V extends PropertyKey> = {
+  /** The ok result type */
   readonly [T_]: T;
+  /** The error result type */
   readonly [E_]: E;
+  /** Dependencies required by the Effect tree */
   readonly [V_]: V;
 };
 
@@ -93,6 +100,7 @@ export type V<U> = U extends Effect<any, Error, infer V> ? V
 
 export type $<T> = T | Effect<T> | Placeholder<PropertyKey, T>;
 
+/** Determine whether a value is an Effect */
 export function isEffect(inQuestion: unknown): inQuestion is Effect {
   return typeof inQuestion === "object"
     && inQuestion !== null

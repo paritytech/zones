@@ -14,7 +14,7 @@ export function call<D, R>(
         return U.thenOk(process.resolve(dep), thrownAsUntypedError(e, logic));
       });
     },
-    children: [dep, logic],
+    args: [dep, logic],
   });
   return e as any;
 }

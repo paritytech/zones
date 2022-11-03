@@ -24,7 +24,7 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
           );
         });
       },
-      children: [keys, values],
+      args: [keys, values],
     },
   );
 }

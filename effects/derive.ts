@@ -16,7 +16,7 @@ export function derive<From, IntoR extends Effect>(
         );
       };
     },
-    children: [from, into],
+    args: [from, into],
   });
   return e as any;
 }

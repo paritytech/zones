@@ -29,7 +29,7 @@ export function rc<Keys extends RcKeys>(
         );
       };
     },
-    children: keys,
+    args: keys,
   });
 }
 

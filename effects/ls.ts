@@ -11,7 +11,7 @@ export function ls<Elements extends unknown[]>(
         return U.all(...elements.map(process.resolve));
       });
     },
-    children: elements,
+    args: elements,
   });
 }
 

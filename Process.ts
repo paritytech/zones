@@ -16,7 +16,7 @@ export class Process extends Map<string, () => unknown> {
       if (!run) {
         run = currentSource.run(this);
         this.set(currentSource.id, run);
-        currentSource.children?.forEach((arg) => {
+        currentSource.args?.forEach((arg) => {
           if (isEffect(arg)) {
             stack.push(arg);
           }
