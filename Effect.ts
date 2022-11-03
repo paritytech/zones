@@ -3,11 +3,11 @@ import { Process } from "./Process.ts";
 import * as U from "./util/mod.ts";
 
 export interface EffectProps {
-  /** A human-readable name for this type of Effect */
+  /** A human-readable name for this type of effect */
   readonly kind: string;
-  /** Any arguments (such as child Effects) used in the construction this effect */
+  /** Any arguments (such as child effects) used in the construction this effect */
   readonly args?: unknown[];
-  /** The Effect-specific runtime behavior */
+  /** The effect-specific runtime behavior */
   readonly run: EffectInitRun;
 }
 
@@ -36,7 +36,7 @@ export function effect<T, E extends Error, V extends PropertyKey>(
     as<U extends T>() {
       return this as unknown as Effect<U, E, V>;
     },
-    excludeError<S extends E>() {
+    excludeErr<S extends E>() {
       return this as unknown as Effect<T, Exclude<E, S>, V>;
     },
   };
@@ -50,16 +50,16 @@ export interface Effect<
   E extends Error = Error,
   V extends PropertyKey = PropertyKey,
 > extends EffectProps {
-  /** A branded, empty object, whose presence indicates the type is an Effect */
+  /** A branded, empty object, whose presence indicates the type is an effect */
   readonly [effect_]: EffectChannels<T, E, V>;
   /** An id, which encapsulates any child/argument ids */
   readonly id: string;
-  /** Utility method to create a new Effect that runs the current Effect and indexes into its result */
+  /** Utility method to create a new effect that runs the current effect and indexes into its result */
   readonly access: EffectAccess<T, E, V>;
   /** Override `T` */
   readonly as: EffectAs<T, E, V>;
   /** Exclude members of `E` */
-  readonly excludeError: EffectExcludeError<T, E, V>;
+  readonly excludeErr: EffectExcludeErr<T, E, V>;
 }
 
 declare const T_: unique symbol;
@@ -70,7 +70,7 @@ export type EffectChannels<T, E extends Error, V extends PropertyKey> = {
   readonly [T_]: T;
   /** The error result type */
   readonly [E_]: E;
-  /** Dependencies required by the Effect tree */
+  /** Dependencies required by the effect tree */
   readonly [V_]: V;
 };
 
@@ -82,7 +82,7 @@ export type EffectAs<T, E extends Error, V extends PropertyKey> = <
   U extends T,
 >() => Effect<U, E, V>;
 
-export type EffectExcludeError<
+export type EffectExcludeErr<
   T,
   E extends Error,
   V extends PropertyKey,
