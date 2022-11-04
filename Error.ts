@@ -2,24 +2,25 @@ import { Effect } from "./Effect.ts";
 
 export class ZonesError<Name extends string> extends Error {
   override readonly name: `${Name}ZonesError`;
-  constructor(
-    name: Name,
-    message: string,
-  ) {
-    super(message);
+  constructor(name: Name, message?: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = `${name}ZonesError`;
   }
 }
 
 export class UntypedZonesError extends ZonesError<"Untyped"> {
+  static readonly MESSAGE =
+    "An untyped error was thrown from the execution of an effect";
   constructor(
     readonly source: Effect,
     readonly thrown: unknown,
   ) {
-    super(
-      "Untyped",
-      "An untyped error was thrown from the execution of an effect",
-    );
+    super("Untyped", UntypedZonesError.MESSAGE, {
+      cause: {
+        source,
+        thrown,
+      },
+    });
   }
 }
 

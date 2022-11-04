@@ -7,7 +7,7 @@ const untypedError = Z.call(0, () => {
   return "HELLO";
 });
 
-const result = Z.runtime()(untypedError);
+const result = untypedError.run();
 
 if (result instanceof Z.UntypedZonesError) {
   console.log(result.source);

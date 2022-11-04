@@ -1,4 +1,5 @@
-import { E, Effect, effect, T, V } from "../Effect.ts";
+import { E, Effect, effect, T } from "../Effect.ts";
+import { Env } from "../Env.ts";
 import { thrownAsUntypedError } from "../Error.ts";
 import * as U from "../util/mod.ts";
 import { ls, Ls$ } from "./ls.ts";
@@ -6,12 +7,12 @@ import { ls, Ls$ } from "./ls.ts";
 export function call<D, R>(
   dep: D,
   logic: CallLogic<D, R>,
-): Effect<Exclude<Awaited<R>, Error>, E<D> | Extract<Awaited<R>, Error>, V<D>> {
+): Effect<Exclude<Awaited<R>, Error>, E<D> | Extract<Awaited<R>, Error>> {
   const e = effect({
     kind: "Call",
-    run: (process) => {
+    init(env) {
       return U.memo((): unknown => {
-        return U.thenOk(process.resolve(dep), thrownAsUntypedError(e, logic));
+        return U.thenOk(env.resolve(dep), thrownAsUntypedError(e, logic));
       });
     },
     args: [dep, logic],
@@ -48,4 +49,4 @@ export namespace call {
   export declare function gen(def: (x: any) => any): any;
 }
 
-export type CallLogic<D, R> = (depResolved: T<D>) => R;
+export type CallLogic<D, R> = (depResolved: T<D>, env: Env) => R;

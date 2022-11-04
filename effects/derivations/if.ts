@@ -1,5 +1,5 @@
-import { $, Effect } from "../Effect.ts";
-import { derive } from "./derive.ts";
+import { $, Effect } from "../../Effect.ts";
+import { derive } from "./base.ts";
 
 function if_<
   Condition extends $<boolean>,
@@ -12,7 +12,7 @@ function if_<
 ) {
   return derive(condition, (condition) => {
     return condition ? then : else_;
-  });
+  }).named("If");
 }
 Object.defineProperty(if_, "name", {
   value: "if",

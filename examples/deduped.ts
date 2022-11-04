@@ -1,5 +1,7 @@
 import * as Z from "../mod.ts";
 
+// TODO: show use of ctx
+
 let dupI = 0;
 function dup() {
   return Z.call(0, () => {
@@ -14,9 +16,7 @@ function deduped() {
   });
 }
 
-const run = Z.runtime();
-
-const dupResult = run(Z.ls(dup(), dup())); // `["0", "1"]`
-const dedupedResult = run(Z.ls(deduped(), deduped())); // `["0", "0"]`
+const dupResult = Z.ls(dup(), dup()).run(); // `["0", "1"]`
+const dedupedResult = Z.ls(deduped(), deduped()).run(); // `["0", "0"]`
 
 console.log({ dupResult, dedupedResult });
