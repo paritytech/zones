@@ -12,7 +12,13 @@ export function call<D, R>(
     kind: "Call",
     init(env) {
       return U.memo((): unknown => {
-        return U.thenOk(env.resolve(dep), thrownAsUntypedError(e, logic));
+        return U.thenOk(
+          env.resolve(dep),
+          thrownAsUntypedError(
+            e,
+            (depResolved) => logic(depResolved as T<D>, env),
+          ),
+        );
       });
     },
     args: [dep, logic],
@@ -49,4 +55,5 @@ export namespace call {
   export declare function gen(def: (x: any) => any): any;
 }
 
+// TODO: decide whether we want to expose `env` moving forward / `this`?
 export type CallLogic<D, R> = (depResolved: T<D>, env: Env) => R;

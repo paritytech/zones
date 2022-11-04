@@ -10,16 +10,13 @@ export class ZonesError<Name extends string> extends Error {
 
 export class UntypedZonesError extends ZonesError<"Untyped"> {
   static readonly MESSAGE =
-    "An untyped error was thrown from the execution of an effect";
+    "An untyped throw occurred within an effect-specific implementation";
   constructor(
     readonly source: Effect,
     readonly thrown: unknown,
   ) {
     super("Untyped", UntypedZonesError.MESSAGE, {
-      cause: {
-        source,
-        thrown,
-      },
+      cause: { source, thrown },
     });
   }
 }

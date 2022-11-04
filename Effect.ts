@@ -1,3 +1,4 @@
+import { ls } from "./effects/ls.ts";
 import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
@@ -72,7 +73,7 @@ function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
     access(key) {
       return effect({
         kind: "Access",
-        init: (env) => {
+        init(env) {
           return U.memo(() => {
             return U.thenOk(
               U.all(env.resolve(this), env.resolve(key)),
