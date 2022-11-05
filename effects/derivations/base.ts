@@ -13,7 +13,7 @@ export function derive<From, IntoR extends Effect>(
         return U.thenOk(
           U.then(env.resolve(from), thrownAsUntypedError(this, into)),
           (e) => env.init(e)(),
-        ) as any;
+        );
       };
     },
     args: [from, into],

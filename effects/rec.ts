@@ -20,7 +20,7 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
               };
             }, {});
           },
-        ) as any;
+        );
       });
     },
     args: [keys, values],

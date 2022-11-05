@@ -102,7 +102,7 @@ function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
 export type EffectInit<T, E extends Error> = (
   this: Effect<T, E>,
   env: Env,
-) => () => Promise<T | E>;
+) => () => unknown;
 
 export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
 export type E<U> = U extends Effect<any, infer E> ? E : never;

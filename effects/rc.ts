@@ -20,7 +20,7 @@ export function rc<Keys extends RcKeys>(
         return U.thenOk(
           U.all(...keys.map(env.resolve)),
           (keys) => [keys, counter!],
-        ) as any;
+        );
       };
     },
     args: keys,

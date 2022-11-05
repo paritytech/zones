@@ -18,7 +18,7 @@ export function call<D, R>(
             this,
             (depResolved) => logic(depResolved as T<D>, env),
           ),
-        ) as any;
+        );
       });
     },
     args: [dep, logic],

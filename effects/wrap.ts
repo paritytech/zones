@@ -12,7 +12,7 @@ export function wrap<Target, Key extends $<PropertyKey>>(
         return U.thenOk(
           U.all(env.resolve(target), env.resolve(key)),
           ([target, key]) => ({ [key]: target }),
-        ) as any;
+        );
       });
     },
     args: [target, key],
