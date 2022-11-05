@@ -1,20 +1,20 @@
 import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
-export interface EffectProps<T, E extends Error> {
+export interface EffectProps {
   /** A human-readable name for this type of effect */
   readonly kind: string;
   /** Any arguments (such as child effects) used in the construction this effect */
   readonly args?: unknown[];
   /** The effect-specific runtime behavior */
-  readonly init: EffectInit<T, E>;
+  readonly init: EffectInit;
 }
 
 const effect_ = Symbol();
 
 /** A typed representation of some computation */
 export interface Effect<T = any, E extends Error = Error>
-  extends EffectProps<T, E>, EffectUtil<T, E>
+  extends EffectProps, EffectUtil<T, E>
 {
   /** A branded, empty object, whose presence indicates the type is an effect */
   readonly [effect_]: EffectPhantoms<T, E>;
@@ -26,7 +26,7 @@ export interface Effect<T = any, E extends Error = Error>
 
 /** A factory with which to create effects */
 export function effect<T, E extends Error>(
-  props: EffectProps<T, E>,
+  props: EffectProps,
 ): Effect<T, E> {
   return {
     ...props,
@@ -99,7 +99,7 @@ function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
   };
 }
 
-export type EffectInit<T, E extends Error> = (
+export type EffectInit<T = any, E extends Error = Error> = (
   this: Effect<T, E>,
   env: Env,
 ) => () => unknown;
