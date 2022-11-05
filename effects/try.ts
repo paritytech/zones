@@ -16,7 +16,7 @@ export function try_<
     kind: "Try",
     init(env) {
       return U.memo(() => {
-        return U.thenErr(env.run(attempt)(), fallback);
+        return U.thenErr(env.getRunner(attempt)(), fallback) as any;
       });
     },
     args: [attempt, fallback],

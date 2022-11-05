@@ -8,7 +8,7 @@ export function ls<Elements extends unknown[]>(
     kind: "Ls",
     init(env) {
       return U.memo(() => {
-        return U.all(...elements.map(env.resolve));
+        return U.all(...elements.map(env.resolve)) as any;
       });
     },
     args: elements,

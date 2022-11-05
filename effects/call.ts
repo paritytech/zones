@@ -8,22 +8,21 @@ export function call<D, R>(
   dep: D,
   logic: CallLogic<D, R>,
 ): Effect<Exclude<Awaited<R>, Error>, E<D> | Extract<Awaited<R>, Error>> {
-  const e = effect({
+  return effect({
     kind: "Call",
     init(env) {
-      return U.memo((): unknown => {
+      return U.memo(() => {
         return U.thenOk(
           env.resolve(dep),
           thrownAsUntypedError(
-            e,
+            this,
             (depResolved) => logic(depResolved as T<D>, env),
           ),
-        );
+        ) as any;
       });
     },
     args: [dep, logic],
   });
-  return e as any;
 }
 export namespace call {
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {

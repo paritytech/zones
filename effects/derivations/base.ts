@@ -6,19 +6,18 @@ export function derive<From, IntoR extends Effect>(
   from: From,
   into: DeriveInto<From, IntoR>,
 ): Effect<T<IntoR>, E<From | IntoR>> {
-  const e = effect({
+  return effect({
     kind: "Derive",
     init(env) {
-      return (): unknown => {
+      return () => {
         return U.thenOk(
-          U.then(env.resolve(from), thrownAsUntypedError(e, into)),
+          U.then(env.resolve(from), thrownAsUntypedError(this, into)),
           (e) => env.init(e)(),
-        );
+        ) as any;
       };
     },
     args: [from, into],
   });
-  return e as any;
 }
 
 export type DeriveInto<Target, IntoR extends Effect> = (

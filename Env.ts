@@ -28,12 +28,12 @@ export class Env {
     return this.runners[root.id]!;
   };
 
-  run = (effect: Effect) => {
+  getRunner = (effect: Effect) => {
     return this.runners[effect.id]!;
   };
 
   resolve = (x: unknown) => {
-    return isEffect(x) ? this.run(x)!() : x;
+    return isEffect(x) ? this.getRunner(x)!() : x;
   };
 
   state = <T>(key: string, ctor: new() => T): T => {

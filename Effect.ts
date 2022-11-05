@@ -1,4 +1,3 @@
-import { ls } from "./effects/ls.ts";
 import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
@@ -68,20 +67,26 @@ export type EffectUtil<T, E extends Error> = {
 function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
   return {
     named(name) {
-      return { ...this, name };
+      const self = this;
+      return effect({
+        kind: "Name",
+        init: self.init,
+        args: [self, name],
+      });
     },
     access(key) {
+      const self = this;
       return effect({
         kind: "Access",
         init(env) {
           return U.memo(() => {
             return U.thenOk(
-              U.all(env.resolve(this), env.resolve(key)),
+              U.all(env.resolve(self), env.resolve(key)),
               ([target, key]) => target[key],
             );
           });
         },
-        args: [this, key],
+        args: [self, key],
       });
     },
     as<U extends T>() {
@@ -97,7 +102,7 @@ function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
 export type EffectInit<T, E extends Error> = (
   this: Effect<T, E>,
   env: Env,
-) => () => unknown;
+) => () => Promise<T | E>;
 
 export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
 export type E<U> = U extends Effect<any, infer E> ? E : never;
