@@ -2,10 +2,13 @@ import { Effect, isEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
 export interface EnvProps {
-  hooks?: ThisType<Env> & {
+  hooks?: ThisType<HookContext> & {
     beforeInit?: () => void;
     afterInit?: () => void;
   };
+}
+export interface HookContext extends Env {
+  currentRoot: Effect;
 }
 
 export function env(props?: EnvProps): Env {
@@ -13,6 +16,7 @@ export function env(props?: EnvProps): Env {
 }
 
 export class Env {
+  round = 0;
   runners: Record<string, () => unknown> = {};
   // TODO: Use finalization registry to clean up.
   //       We don't use a weak map bc we may want to inspect values.
@@ -22,7 +26,8 @@ export class Env {
   constructor(readonly props?: EnvProps) {}
 
   init = (root: Effect) => {
-    this.props?.hooks?.beforeInit?.apply(this);
+    const hookCtx: HookContext = { ...this, currentRoot: root };
+    this.props?.hooks?.beforeInit?.apply(hookCtx);
     const stack = [root];
     while (stack.length) {
       const currentSource = stack.pop()!;
@@ -38,7 +43,8 @@ export class Env {
       }
     }
     const runner = this.runners[root.id]!;
-    this.props?.hooks?.afterInit?.apply(this);
+    this.props?.hooks?.afterInit?.apply(hookCtx);
+    this.round++;
     return runner;
   };
 
