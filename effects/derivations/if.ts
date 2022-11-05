@@ -12,7 +12,8 @@ function if_<
 ) {
   return derive(condition, (condition) => {
     return condition ? then : else_;
-  }).named("If");
+  })
+    .zoned("If");
 }
 Object.defineProperty(if_, "name", {
   value: "if",

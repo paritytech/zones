@@ -8,5 +8,6 @@ export function each<Elements extends $<unknown[]>, Into extends Effect>(
 ) {
   return derive(elements, (resolved) => {
     return ls(...resolved.map(cb));
-  }).named("Each");
+  })
+    .zoned("Each");
 }

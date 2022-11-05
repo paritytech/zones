@@ -22,12 +22,12 @@ export interface Effect<T = any, E extends Error = Error>
   readonly id: string;
   /** Execute the current effect with either a specified or new env */
   readonly run: EffectRun<T, E>;
+  /** If defined, `zone` is the name of the serialization boundary */
+  readonly zone?: string;
 }
 
 /** A factory with which to create effects */
-export function effect<T, E extends Error>(
-  props: EffectProps,
-): Effect<T, E> {
+export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
   return {
     ...props,
     [effect_]: {} as EffectPhantoms<T, E>,
@@ -53,7 +53,7 @@ export type EffectRun<T, E extends Error> = (env?: Env) => Promise<T | E>;
 /** Utilities for common operations on effects */
 export type EffectUtil<T, E extends Error> = {
   /** Readonly produce a new effect with a specified name */
-  named(name: string): Effect<T, E>;
+  zoned(name: string): Effect<T, E>;
   /** Utility method to create a new effect that runs the current effect and indexes into its result */
   access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, K>], E>;
   /** Override `T` */
@@ -66,13 +66,8 @@ export type EffectUtil<T, E extends Error> = {
 
 function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
   return {
-    named(name) {
-      const self = this;
-      return effect({
-        kind: "Name",
-        init: self.init,
-        args: [self, name],
-      });
+    zoned(zone) {
+      return { ...this, zone };
     },
     access(key) {
       const self = this;
