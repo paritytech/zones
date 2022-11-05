@@ -1,7 +1,7 @@
 import { $, E, Effect, effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
-export function wrap<Target extends $<object>, Key extends $<string>>(
+export function wrap<Target, Key extends $<PropertyKey>>(
   target: Target,
   key: Key,
 ): Effect<{ [_ in T<Key>]: T<Target> }, E<Target>> {
