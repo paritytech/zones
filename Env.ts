@@ -1,16 +1,28 @@
 import { Effect, isEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
-export function env(): Env {
-  return new Env();
+export interface EnvProps {
+  hooks?: ThisType<Env> & {
+    beforeInit?: () => void;
+    afterInit?: () => void;
+  };
+}
+
+export function env(props?: EnvProps): Env {
+  return new Env(props);
 }
 
 export class Env {
   runners: Record<string, () => unknown> = {};
-  globals = new WeakMap<new() => unknown, unknown>();
-  states: Record<string, WeakMap<new() => unknown, unknown>> = {};
+  // TODO: Use finalization registry to clean up.
+  //       We don't use a weak map bc we may want to inspect values.
+  globals = new Map<new() => unknown, unknown>();
+  states: Record<string, Map<new() => unknown, unknown>> = {};
+
+  constructor(readonly props?: EnvProps) {}
 
   init = (root: Effect) => {
+    this.props?.hooks?.beforeInit?.apply(this);
     const stack = [root];
     while (stack.length) {
       const currentSource = stack.pop()!;
@@ -25,7 +37,9 @@ export class Env {
         });
       }
     }
-    return this.runners[root.id]!;
+    const runner = this.runners[root.id]!;
+    this.props?.hooks?.afterInit?.apply(this);
+    return runner;
   };
 
   getRunner = (effect: Effect) => {
@@ -39,7 +53,7 @@ export class Env {
   state = <T>(key: string, ctor: new() => T): T => {
     let state = this.states[key];
     if (!state) {
-      state = new WeakMap();
+      state = new Map();
       this.states[key] = state;
     }
     return U.getOrInit(state, ctor, () => new ctor()) as T;

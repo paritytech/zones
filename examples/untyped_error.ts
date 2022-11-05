@@ -9,6 +9,6 @@ const untypedError = Z.call(0, () => {
 
 const result = untypedError.run();
 
-if (result instanceof Z.UntypedZonesError) {
+if (result instanceof Z.ZonesUntypedError) {
   console.log(result.source);
 }

@@ -8,14 +8,15 @@ export function rc<Keys extends RcKeys>(
   return effect({
     kind: "Rc",
     init(env) {
-      const rcContext = env.state(this.id, RcCounters);
+      const rcContext = env.global(RcCounters);
       const sig = U.id(keys[0]);
       let counter = rcContext.get(sig);
       if (!counter) {
         counter = new RcCounter();
         rcContext.set(sig, counter);
+      } else {
+        counter.i += 1;
       }
-      counter.i += 1;
       return () => {
         return U.thenOk(
           U.all(...keys.map(env.resolve)),
