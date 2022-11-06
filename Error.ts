@@ -1,30 +1,18 @@
 import { Effect } from "./Effect.ts";
 
-export class ZonesError<Name extends string> extends Error {
-  override readonly name: `Zones${Name}Error`;
-  constructor(name: Name, message?: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = `Zones${name}Error`;
-  }
-}
-
-export class ZonesUntypedError extends ZonesError<"Untyped"> {
-  static readonly MESSAGE =
+export class ZonesError extends Error {
+  static MESSAGE =
     "An untyped throw occurred within an effect-specific implementation";
-  constructor(
-    readonly source: Effect,
-    readonly thrown: unknown,
-  ) {
-    super("Untyped", ZonesUntypedError.MESSAGE, {
-      cause: { source, thrown },
-    });
+  override readonly name = `ZonesError`;
+  constructor(readonly source: Effect, thrown: unknown) {
+    super(ZonesError.MESSAGE, { cause: thrown });
   }
 }
 
-export function thrownAsUntypedError<F extends (...args: any[]) => unknown>(
+export function wrapThrows<F extends (...args: any[]) => unknown>(
   source: Effect,
   run: F,
-): F & ((...args: any) => ReturnType<F> | ZonesUntypedError) {
+): F & ((...args: any) => ReturnType<F> | ZonesError) {
   return ((...args: unknown[]) => {
     try {
       const runResult = run(...args);
@@ -32,14 +20,14 @@ export function thrownAsUntypedError<F extends (...args: any[]) => unknown>(
         return (async () => {
           try {
             return await runResult;
-          } catch (e) {
-            return new ZonesUntypedError(source, e);
+          } catch (thrown) {
+            return new ZonesError(source, thrown);
           }
         })();
       }
       return runResult;
-    } catch (e) {
-      return new ZonesUntypedError(source, e);
+    } catch (thrown) {
+      return new ZonesError(source, thrown);
     }
-  }) as F & ((...args: any) => ReturnType<F> | ZonesUntypedError);
+  }) as F & ((...args: any) => ReturnType<F> | ZonesError);
 }

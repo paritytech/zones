@@ -11,6 +11,28 @@ export interface EffectProps {
 }
 
 const effect_ = Symbol();
+const denoCustomInspect = Symbol.for("Deno.customInspect");
+const nodeCustomInspect = Symbol.for("nodejs.util.inspect.custom");
+
+/** A factory with which to create effects */
+export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
+  return {
+    [effect_]: {} as EffectPhantoms<T, E>,
+    id: `${props.kind}(${props.args?.map(U.id).join(",") || ""})`,
+    run(env) {
+      return (env || new Env()).init(this)() as any;
+    },
+    [denoCustomInspect](inspect, options) {
+      return this.inspect((value) => inspect(value, options));
+    },
+    [nodeCustomInspect](_0, _1, inspect) {
+      return this.inspect(inspect);
+    },
+    inspect: inspectEffect,
+    ...props,
+    ...util(),
+  };
+}
 
 /** A typed representation of some computation */
 export interface Effect<T = any, E extends Error = Error>
@@ -24,19 +46,10 @@ export interface Effect<T = any, E extends Error = Error>
   readonly run: EffectRun<T, E>;
   /** If defined, `zone` is the name of the serialization boundary */
   readonly zone?: string;
-}
-
-/** A factory with which to create effects */
-export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
-  return {
-    ...props,
-    [effect_]: {} as EffectPhantoms<T, E>,
-    id: `${props.kind}(${props.args?.map(U.id).join(",") || ""})`,
-    run(env) {
-      return (env || new Env()).init(this)() as any;
-    },
-    ...util(),
-  };
+  /** Custom inspect for improved legibility of logs */
+  inspect(inspect: Inspect): string;
+  [denoCustomInspect]: DenoInspect;
+  [nodeCustomInspect]: NodeInspect;
 }
 
 declare const T_: unique symbol;
@@ -76,7 +89,7 @@ function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
         init(env) {
           return U.memo(() => {
             return U.thenOk(
-              U.all(env.resolve(self), env.resolve(key)),
+              U.all(env.getRunner(self)(), env.resolve(key)),
               ([target, key]) => target[key],
             );
           });
@@ -109,4 +122,69 @@ export function isEffect(inQuestion: unknown): inQuestion is Effect {
   return typeof inQuestion === "object"
     && inQuestion !== null
     && effect_ in inQuestion;
+}
+
+/**
+ * @param root the root of the visitation target tree
+ * @param visit the visitor fn, which should return `visitEffect.proceed` in order to proceed to children
+ */
+export function visitEffect(
+  root: Effect,
+  visit: (current: Effect) => undefined | visitEffect.proceed,
+) {
+  const stack = [root];
+  while (stack.length) {
+    const current = stack.pop()!;
+    if (visit(current) === visitEffect.proceed && current.args) {
+      for (const arg of current.args) {
+        isEffect(arg) && stack.push(arg);
+      }
+    }
+  }
+}
+export namespace visitEffect {
+  export const proceed = Symbol();
+  export type proceed = typeof proceed;
+}
+
+class Ref {
+  constructor(readonly to: number) {}
+}
+export function inspectEffect(this: Effect, inspect: Inspect): string {
+  let i = 0;
+  const lookup: Record<string, [i: number, source: Effect]> = {};
+  const segments: InspectEffectSegment[] = [];
+  visitEffect(this, (current) => {
+    if (lookup[current.id]) return;
+    lookup[current.id] = [++i, current];
+    return visitEffect.proceed;
+  });
+  for (const id in lookup) {
+    const [currentI, { kind, zone, args }] = lookup[id]!;
+    segments.unshift({
+      i: i - currentI,
+      kind,
+      ...zone && { zone },
+      ...args?.length && {
+        args: args.map((arg) => {
+          return isEffect(arg) ? new Ref(lookup[arg.id]![0] - 2) : arg;
+        }),
+      },
+    });
+  }
+  return inspect(segments);
+}
+
+type Inspect = (value: unknown) => string;
+type DenoInspect = (
+  inspect: (value: unknown, opts: Deno.InspectOptions) => string,
+  opts: Deno.InspectOptions,
+) => string;
+type NodeInspect = (_0: unknown, _1: unknown, inspect: Inspect) => string;
+
+interface InspectEffectSegment {
+  i: number;
+  kind: string;
+  zone?: string;
+  args?: unknown[];
 }

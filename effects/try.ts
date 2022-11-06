@@ -2,7 +2,7 @@ import { E, Effect, effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 // TODO: fix this
-export function try_<
+function try_<
   Attempt extends Effect,
   FallbackR extends T<Attempt> | Error,
 >(

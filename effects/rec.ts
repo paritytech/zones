@@ -10,20 +10,14 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
     kind: "Rec",
     init(env) {
       return U.memo(() => {
-        return U.thenOk(
-          U.all(...Object.values(fields).map(env.resolve)),
-          (values) => {
-            return keys.reduce((acc, cur, i) => {
-              return {
-                ...acc,
-                [cur]: values[i]!,
-              };
-            }, {});
-          },
-        );
+        return U.thenOk(U.all(...values.map(env.resolve)), (values) => {
+          return keys.reduce((acc, cur, i) => {
+            return { ...acc, [cur]: values[i]! };
+          }, {});
+        });
       });
     },
-    args: [keys, values],
+    args: [...keys, ...values],
   });
 }
 

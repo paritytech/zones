@@ -1,4 +1,4 @@
-import { Effect, isEffect } from "./Effect.ts";
+import { Effect, isEffect, visitEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
 export interface EnvProps {
@@ -21,6 +21,7 @@ export class Env {
   // TODO: Use finalization registry to clean up.
   //       We don't use a weak map bc we may want to inspect values.
   globals = new Map<new() => unknown, unknown>();
+  // TODO: rename `states`/`state`?
   states: Record<string, Map<new() => unknown, unknown>> = {};
 
   constructor(readonly props?: EnvProps) {}
@@ -28,24 +29,14 @@ export class Env {
   init = (root: Effect) => {
     const hookCtx: HookContext = { ...this, currentRoot: root };
     this.props?.hooks?.beforeInit?.apply(hookCtx);
-    const stack = [root];
-    while (stack.length) {
-      const currentSource = stack.pop()!;
-      let run = this.runners[currentSource.id];
-      if (!run) {
-        run = currentSource.init(this);
-        this.runners[currentSource.id] = run;
-        currentSource.args?.forEach((arg) => {
-          if (isEffect(arg)) {
-            stack.push(arg);
-          }
-        });
-      }
-    }
-    const runner = this.runners[root.id]!;
+    visitEffect(root, (current) => {
+      if (this.runners[current.id]) return;
+      this.runners[current.id] = current.init(this);
+      return visitEffect.proceed;
+    });
     this.props?.hooks?.afterInit?.apply(hookCtx);
     this.round++;
-    return runner;
+    return this.runners[root.id]!;
   };
 
   getRunner = (effect: Effect) => {
@@ -56,6 +47,10 @@ export class Env {
     return isEffect(x) ? this.getRunner(x)!() : x;
   };
 
+  global = <T>(ctor: new() => T): T => {
+    return U.getOrInit(this.globals, ctor, () => new ctor()) as T;
+  };
+
   state = <T>(key: string, ctor: new() => T): T => {
     let state = this.states[key];
     if (!state) {
@@ -63,9 +58,5 @@ export class Env {
       this.states[key] = state;
     }
     return U.getOrInit(state, ctor, () => new ctor()) as T;
-  };
-
-  global = <T>(ctor: new() => T): T => {
-    return U.getOrInit(this.globals, ctor, () => new ctor()) as T;
   };
 }

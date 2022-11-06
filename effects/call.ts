@@ -1,6 +1,6 @@
 import { E, Effect, effect, T } from "../Effect.ts";
 import { Env } from "../Env.ts";
-import { thrownAsUntypedError } from "../Error.ts";
+import { wrapThrows } from "../Error.ts";
 import * as U from "../util/mod.ts";
 import { ls, Ls$ } from "./ls.ts";
 
@@ -14,7 +14,7 @@ export function call<D, R>(
       return U.memo(() => {
         return U.thenOk(
           env.resolve(dep),
-          thrownAsUntypedError(
+          wrapThrows(
             this,
             (depResolved) => logic(depResolved as T<D>, env),
           ),

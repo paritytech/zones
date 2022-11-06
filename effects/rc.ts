@@ -2,38 +2,30 @@ import { E, Effect, effect } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 import { LsT } from "./ls.ts";
 
-export function rc<Keys extends RcKeys>(
-  ...keys: Keys
-): Effect<RcT<Keys>, E<Keys[number]>> {
+export function rc<Args extends RcArgs>(
+  ...args: Args
+): Effect<RcT<Args>, E<Args[number]>> {
   return effect({
     kind: "Rc",
     init(env) {
-      const rcContext = env.global(RcCounters);
-      const sig = U.id(keys[0]);
-      let counter = rcContext.get(sig);
-      if (!counter) {
-        counter = new RcCounter();
-        rcContext.set(sig, counter);
-      } else {
-        counter.i += 1;
-      }
+      const counter = env.state(`Rc(${U.id(args[0])})`, RcCounter);
+      counter.i += 1;
       return () => {
         return U.thenOk(
-          U.all(...keys.map(env.resolve)),
-          (keys) => [keys, counter!],
+          U.all(...args.map(env.resolve)),
+          (keys) => [keys, counter],
         );
       };
     },
-    args: keys,
+    args,
   });
 }
 
-export type RcKeys = [target: unknown, ...keys: unknown[]];
-export type RcT<Keys extends RcKeys> = [
+export type RcArgs = [target: unknown, ...keys: unknown[]];
+export type RcT<Keys extends RcArgs> = [
   LsT<Keys>,
   RcCounter,
 ];
 
 // @dprint-ignore-next-line
-export class RcCounter { i = 1 }
-export class RcCounters extends Map<string, RcCounter> {}
+export class RcCounter { i = 0 }
