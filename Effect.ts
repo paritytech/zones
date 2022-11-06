@@ -12,8 +12,6 @@ export interface EffectProps {
 }
 
 const effect_ = Symbol();
-const denoCustomInspect = Symbol.for("Deno.customInspect");
-const nodeCustomInspect = Symbol.for("nodejs.util.inspect.custom");
 
 /** A factory with which to create effects */
 export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
@@ -23,13 +21,7 @@ export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
     run(env) {
       return (env || new Env()).init(this)() as any;
     },
-    [denoCustomInspect](inspect, options) {
-      return this.inspect((value) => inspect(value, options));
-    },
-    [nodeCustomInspect](_0, _1, inspect) {
-      return this.inspect(inspect);
-    },
-    inspect: inspectEffect,
+    ...U.inspect(inspectEffect),
     ...props,
     ...util(),
   };
@@ -37,7 +29,7 @@ export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
 
 /** A typed representation of some computation */
 export interface Effect<T = any, E extends Error = Error>
-  extends EffectProps, EffectUtil<T, E>
+  extends EffectProps, EffectUtil<T, E>, U.CustomInspectBearer
 {
   /** A branded, empty object, whose presence indicates the type is an effect */
   readonly [effect_]: EffectPhantoms<T, E>;
@@ -47,10 +39,6 @@ export interface Effect<T = any, E extends Error = Error>
   readonly run: EffectRun<T, E>;
   /** If defined, `zone` is the name of the serialization boundary */
   readonly zone?: string;
-  /** Custom inspect for improved legibility of logs */
-  inspect(inspect: Inspect): string;
-  [denoCustomInspect]: DenoInspect;
-  [nodeCustomInspect]: NodeInspect;
 }
 
 declare const T_: unique symbol;
@@ -159,7 +147,7 @@ export namespace visitEffect {
 class Ref {
   constructor(readonly to: number) {}
 }
-function inspectEffect(this: Effect, inspect: Inspect): string {
+function inspectEffect(this: Effect, inspect: U.Inspect): string {
   let i = 0;
   const lookup: Record<string, [i: number, source: Effect]> = {};
   const segments: InspectEffectSegment[] = [];
@@ -183,13 +171,6 @@ function inspectEffect(this: Effect, inspect: Inspect): string {
   }
   return inspect(segments);
 }
-
-type Inspect = (value: unknown) => string;
-type DenoInspect = (
-  inspect: (value: unknown, opts: Deno.InspectOptions) => string,
-  opts: Deno.InspectOptions,
-) => string;
-type NodeInspect = (_0: unknown, _1: unknown, inspect: Inspect) => string;
 
 interface InspectEffectSegment {
   i: number;
