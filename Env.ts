@@ -20,9 +20,7 @@ export class Env {
   runners: Record<string, () => unknown> = {};
   // TODO: Use finalization registry to clean up.
   //       We don't use a weak map bc we may want to inspect values.
-  globals = new Map<new() => unknown, unknown>();
-  // TODO: rename `states`/`state`?
-  states: Record<string, Map<new() => unknown, unknown>> = {};
+  vars: Record<string, Map<new() => unknown, unknown>> = {};
 
   constructor(readonly props?: EnvProps) {}
 
@@ -47,15 +45,11 @@ export class Env {
     return isEffect(x) ? this.getRunner(x)!() : x;
   };
 
-  global = <T>(ctor: new() => T): T => {
-    return U.getOrInit(this.globals, ctor, () => new ctor()) as T;
-  };
-
-  state = <T>(key: string, ctor: new() => T): T => {
-    let state = this.states[key];
+  var = <T>(key: string, ctor: new() => T): T => {
+    let state = this.vars[key];
     if (!state) {
       state = new Map();
-      this.states[key] = state;
+      this.vars[key] = state;
     }
     return U.getOrInit(state, ctor, () => new ctor()) as T;
   };

@@ -8,7 +8,7 @@ export function rc<Args extends RcArgs>(
   return effect({
     kind: "Rc",
     init(env) {
-      const counter = env.state(`Rc(${U.id(args[0])})`, RcCounter);
+      const counter = env.var(`Rc(${U.id(args[0])})`, RcCounter);
       counter.i += 1;
       return () => {
         return U.thenOk(
