@@ -14,10 +14,7 @@ export function call<D, R>(
       return U.memo(() => {
         return U.thenOk(
           env.resolve(dep),
-          wrapThrows(
-            this,
-            (depResolved) => logic(depResolved as T<D>, env),
-          ),
+          wrapThrows((depResolved) => logic(depResolved as T<D>, env), this),
         );
       });
     },

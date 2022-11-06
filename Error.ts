@@ -10,8 +10,8 @@ export class ZonesError extends Error {
 }
 
 export function wrapThrows<F extends (...args: any[]) => unknown>(
-  source: Effect,
   run: F,
+  source: Effect,
 ): F & ((...args: any) => ReturnType<F> | ZonesError) {
   return ((...args: unknown[]) => {
     try {

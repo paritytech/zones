@@ -11,7 +11,7 @@ export function derive<From, IntoR extends Effect>(
     init(env) {
       return () => {
         return U.thenOk(
-          U.then(env.resolve(from), wrapThrows(this, into)),
+          U.then(env.resolve(from), wrapThrows(into, this)),
           (e) => env.init(e)(),
         );
       };

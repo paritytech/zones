@@ -147,6 +147,7 @@ export namespace visitEffect {
   export type proceed = typeof proceed;
 }
 
+// TODO: should this include custom inspection as well?
 class Ref {
   constructor(readonly to: number) {}
 }
