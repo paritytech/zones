@@ -1,4 +1,4 @@
-import { E, Effect, effect, T, V } from "../Effect.ts";
+import { E, Effect, effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 // TODO: fix this
@@ -10,14 +10,13 @@ export function try_<
   fallback: Catch<Attempt, FallbackR>,
 ): Effect<
   T<Attempt> | Exclude<Awaited<FallbackR>, Error>,
-  Extract<Awaited<FallbackR>, Error>,
-  V<Attempt>
+  Extract<Awaited<FallbackR>, Error>
 > {
   return effect({
     kind: "Try",
-    run: (process) => {
+    init(env) {
       return U.memo(() => {
-        return U.thenErr(process.get(attempt.id)!(), fallback);
+        return U.thenErr(env.getRunner(attempt)(), fallback);
       });
     },
     args: [attempt, fallback],

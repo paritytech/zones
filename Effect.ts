@@ -1,5 +1,4 @@
-import { Placeholder } from "./Placeholder.ts";
-import { Process } from "./Process.ts";
+import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
 export interface EffectProps {
@@ -8,97 +7,102 @@ export interface EffectProps {
   /** Any arguments (such as child effects) used in the construction this effect */
   readonly args?: unknown[];
   /** The effect-specific runtime behavior */
-  readonly run: EffectInitRun;
-}
-
-/** A factory with which to create effects */
-export function effect<T, E extends Error, V extends PropertyKey>(
-  props: EffectProps,
-): Effect<T, E, V> {
-  return {
-    ...props,
-    [effect_]: {} as EffectChannels<T, E, V>,
-    id: `${props.kind}(${props.args?.map(U.id.of).join(",") || ""})`,
-    access(key) {
-      return effect({
-        kind: "Access",
-        run: (process) => {
-          return U.memo(() => {
-            return U.thenOk(
-              U.all(process.resolve(this), process.resolve(key)),
-              ([target, key]) => target[key],
-            );
-          });
-        },
-        args: [this, key],
-      });
-    },
-    as<U extends T>() {
-      return this as unknown as Effect<U, E, V>;
-    },
-    excludeErr<S extends E>() {
-      return this as unknown as Effect<T, Exclude<E, S>, V>;
-    },
-  };
+  readonly init: EffectInit;
 }
 
 const effect_ = Symbol();
 
 /** A typed representation of some computation */
-export interface Effect<
-  T = any,
-  E extends Error = Error,
-  V extends PropertyKey = PropertyKey,
-> extends EffectProps {
+export interface Effect<T = any, E extends Error = Error>
+  extends EffectProps, EffectUtil<T, E>
+{
   /** A branded, empty object, whose presence indicates the type is an effect */
-  readonly [effect_]: EffectChannels<T, E, V>;
+  readonly [effect_]: EffectPhantoms<T, E>;
   /** An id, which encapsulates any child/argument ids */
   readonly id: string;
-  /** Utility method to create a new effect that runs the current effect and indexes into its result */
-  readonly access: EffectAccess<T, E, V>;
-  /** Override `T` */
-  readonly as: EffectAs<T, E, V>;
-  /** Exclude members of `E` */
-  readonly excludeErr: EffectExcludeErr<T, E, V>;
+  /** Execute the current effect with either a specified or new env */
+  readonly run: EffectRun<T, E>;
+  /** If defined, `zone` is the name of the serialization boundary */
+  readonly zone?: string;
+}
+
+/** A factory with which to create effects */
+export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
+  return {
+    ...props,
+    [effect_]: {} as EffectPhantoms<T, E>,
+    id: `${props.kind}(${props.args?.map(U.id).join(",") || ""})`,
+    run(env) {
+      return (env || new Env()).init(this)() as any;
+    },
+    ...util(),
+  };
 }
 
 declare const T_: unique symbol;
 declare const E_: unique symbol;
-declare const V_: unique symbol;
-export type EffectChannels<T, E extends Error, V extends PropertyKey> = {
+export type EffectPhantoms<T, E extends Error> = {
   /** The ok result type */
   readonly [T_]: T;
   /** The error result type */
   readonly [E_]: E;
-  /** Dependencies required by the effect tree */
-  readonly [V_]: V;
 };
 
-export type EffectAccess<T, E extends Error, V extends PropertyKey> = <
-  K extends $<keyof T>,
->(key: K) => Effect<T[U.AssertKeyof<T, K>], E, V>;
+export type EffectRun<T, E extends Error> = (env?: Env) => Promise<T | E>;
 
-export type EffectAs<T, E extends Error, V extends PropertyKey> = <
-  U extends T,
->() => Effect<U, E, V>;
+/** Utilities for common operations on effects */
+export type EffectUtil<T, E extends Error> = {
+  /** Readonly produce a new effect with a specified name */
+  zoned(name: string): Effect<T, E>;
+  /** Utility method to create a new effect that runs the current effect and indexes into its result */
+  access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, K>], E>;
+  /** Override `T` */
+  as<U extends T>(): Effect<U, E>;
+  /** Exclude members of `E` */
+  excludeErr<C extends E>(): Effect<T, Exclude<E, C>>;
+  /** Stores effect-specific debugging queues */
+  debug?: any;
+};
 
-export type EffectExcludeErr<
-  T,
-  E extends Error,
-  V extends PropertyKey,
-> = <C extends E>() => Effect<T, Exclude<E, C>, V>;
+function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
+  return {
+    zoned(zone) {
+      return { ...this, zone };
+    },
+    access(key) {
+      const self = this;
+      return effect({
+        kind: "Access",
+        init(env) {
+          return U.memo(() => {
+            return U.thenOk(
+              U.all(env.resolve(self), env.resolve(key)),
+              ([target, key]) => target[key],
+            );
+          });
+        },
+        args: [self, key],
+      });
+    },
+    as<U extends T>() {
+      return this as unknown as Effect<U, E>;
+    },
+    excludeErr<S extends E>() {
+      return this as unknown as Effect<T, Exclude<E, S>>;
+    },
+    debug: undefined,
+  };
+}
 
-export type EffectInitRun = (process: Process) => () => unknown;
+export type EffectInit<T = any, E extends Error = Error> = (
+  this: Effect<T, E>,
+  env: Env,
+) => () => unknown;
 
-export type T<U> = U extends Effect<infer T> ? T
-  : U extends Placeholder<PropertyKey, infer T> ? T
-  : Exclude<Awaited<U>, Error>;
+export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
 export type E<U> = U extends Effect<any, infer E> ? E : never;
-export type V<U> = U extends Effect<any, Error, infer V> ? V
-  : U extends Placeholder ? U["key"]
-  : never;
 
-export type $<T> = T | Effect<T> | Placeholder<PropertyKey, T>;
+export type $<T> = T | Effect<T>;
 
 /** Determine whether a value is an Effect */
 export function isEffect(inQuestion: unknown): inQuestion is Effect {

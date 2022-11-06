@@ -35,6 +35,6 @@ const root = add(
   ),
 );
 
-const result = await Z.runtime()(root);
+const result = await root.run();
 
 console.log(result);

@@ -4,6 +4,6 @@ const x = Z.call(0, () => "HELLO");
 
 const y = Z.wrap(x, "theKey");
 
-const result = Z.runtime()(y);
+const result = await y.run();
 
 console.log(result);

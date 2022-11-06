@@ -1,33 +1,37 @@
 import { isEffect } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
-class IdFactory<T> {
-  #i = 0;
+let i = 0;
 
-  constructor(
-    readonly type: string,
-    readonly container: U.MapLike<T, string>,
-  ) {}
-
-  of = (target: T): string => {
-    let signature = this.container.get(target);
-    if (!signature) {
-      signature = `${this.type}(${this.#i++})`;
-      this.container.set(target, signature);
-    }
-    return signature;
-  };
+export const keyIds: Record<PropertyKey, string> = {};
+export function keyId(key: PropertyKey) {
+  let keyId = keyIds[key];
+  if (!keyId) {
+    keyId = `Key(${i++})`;
+    keyIds[key] = keyId;
+  }
+  return keyId;
 }
 
-export const strongContainer = new Map();
-export const strong = new IdFactory("strong", strongContainer);
-export const weak = new IdFactory("weak", new WeakMap());
+export const refIds = new WeakMap<object, string>();
+export function refId(ref: object): string {
+  return U.getOrInit(refIds, ref, () => {
+    return `Ref(${i++})`;
+  });
+}
 
-export function of(target: unknown): string {
+export const unknownIds = new Map<unknown, string>();
+export function unknownId(value: unknown) {
+  return U.getOrInit(unknownIds, value, () => {
+    return `Unknown(${i++})`;
+  });
+}
+
+export function id(target: unknown): string {
   switch (typeof target) {
     case "function": {
       if (!target.name) {
-        return weak.of(target as (...args: any[]) => any);
+        return refId(target as (...args: any[]) => any);
       }
       return `fn(${target.name})`;
     }
@@ -37,10 +41,15 @@ export function of(target: unknown): string {
       } else if (target === null) {
         return "null";
       }
-      return weak.of(target);
+      return refId(target);
+    }
+    case "string":
+    case "number":
+    case "symbol": {
+      return keyId(target);
     }
     default: {
-      return strong.of(target);
+      return unknownId(target);
     }
   }
 }
