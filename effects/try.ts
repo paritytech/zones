@@ -15,6 +15,7 @@ function try_<
   return effect({
     kind: "Try",
     init(env) {
+      // TODO: get this working properly
       return U.memo(() => {
         return U.thenErr(env.getRunner(attempt)(), fallback);
       });
