@@ -3,7 +3,7 @@ const nodeCustomInspect = Symbol.for("nodejs.util.inspect.custom");
 
 export function customInspects(
   inspect: RuntimeAgnosticCustomInspect,
-): CustomInspectBearer {
+): CustomInspects {
   return {
     [denoCustomInspect](inspect, options) {
       return this.inspect((value) => inspect(value, options));
@@ -15,7 +15,7 @@ export function customInspects(
   };
 }
 
-export interface CustomInspectBearer {
+export interface CustomInspects {
   /** Runtime-agnostic custom inspect */
   inspect: RuntimeAgnosticCustomInspect;
   /** Deno custom inspect */

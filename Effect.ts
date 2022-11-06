@@ -29,7 +29,7 @@ export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
 
 /** A typed representation of some computation */
 export interface Effect<T = any, E extends Error = Error>
-  extends EffectProps, EffectUtil<T, E>, U.CustomInspectBearer
+  extends EffectProps, EffectUtil<T, E>, U.CustomInspects
 {
   /** A branded, empty object, whose presence indicates the type is an effect */
   readonly [effect_]: EffectPhantoms<T, E>;
