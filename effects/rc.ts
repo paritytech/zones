@@ -24,10 +24,11 @@ export function rc<Args extends RcArgs>(
 
 /** The arguments to be supplied to the rc effect factory */
 export type RcArgs = [target: unknown, ...keys: unknown[]];
-export type RcT<Keys extends RcArgs> = [
-  LsT<Keys>,
-  RcCounter,
-];
+/**
+ * The resolution of an rc effect (a tuple in which e0 is a list of the
+ * resolved rc args and e1 is the counter for the specified target)
+ */
+export type RcT<Args extends RcArgs> = [LsT<Args>, RcCounter];
 
 /** A simple counter for use within rc effects */
 // @dprint-ignore-next-line
