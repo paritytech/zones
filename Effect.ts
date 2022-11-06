@@ -21,7 +21,7 @@ export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
     run(env) {
       return (env || new Env()).init(this)() as any;
     },
-    ...U.inspect(inspectEffect),
+    ...U.customInspects(inspectEffect),
     ...props,
     ...util(),
   };

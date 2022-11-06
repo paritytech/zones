@@ -1,7 +1,9 @@
 const denoCustomInspect = Symbol.for("Deno.customInspect");
 const nodeCustomInspect = Symbol.for("nodejs.util.inspect.custom");
 
-export function inspect(inspect: RuntimeAgnosticInspect): CustomInspectBearer {
+export function customInspects(
+  inspect: RuntimeAgnosticCustomInspect,
+): CustomInspectBearer {
   return {
     [denoCustomInspect](inspect, options) {
       return this.inspect((value) => inspect(value, options));
@@ -15,20 +17,20 @@ export function inspect(inspect: RuntimeAgnosticInspect): CustomInspectBearer {
 
 export interface CustomInspectBearer {
   /** Runtime-agnostic custom inspect */
-  inspect: RuntimeAgnosticInspect;
+  inspect: RuntimeAgnosticCustomInspect;
   /** Deno custom inspect */
-  [denoCustomInspect]: DenoInspect;
+  [denoCustomInspect]: DenoCustomInspect;
   /** Node custom inspect */
-  [nodeCustomInspect]: NodeInspect;
+  [nodeCustomInspect]: NodeCustomInspect;
 }
 
 export type Inspect = (value: unknown) => string;
-type RuntimeAgnosticInspect = (inspect: Inspect) => string;
-type DenoInspect = (
+type RuntimeAgnosticCustomInspect = (inspect: Inspect) => string;
+type DenoCustomInspect = (
   inspect: (value: unknown, opts: Deno.InspectOptions) => string,
   opts: Deno.InspectOptions,
 ) => string;
-type NodeInspect = (
+type NodeCustomInspect = (
   depth: number,
   options: unknown,
   inspect: Inspect,
