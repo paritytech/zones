@@ -126,7 +126,7 @@ export function isEffect(inQuestion: unknown): inQuestion is Effect {
 
 /**
  * @param root the root of the visitation target tree
- * @param visit the visitor fn, which should return `visitEffect.proceed` in order to proceed to children
+ * @param visit the visitor fn, which should return `visitEffect.proceed` in order to proceed with subsequent visitations
  */
 export function visitEffect(
   root: Effect,
