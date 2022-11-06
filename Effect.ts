@@ -137,7 +137,7 @@ export function isEffect(inQuestion: unknown): inQuestion is Effect {
  */
 export function visitEffect(
   root: Effect,
-  visit: (current: Effect) => undefined | visitEffect.proceed,
+  visit: (current: Effect) => undefined | typeof visitEffect.proceed,
 ) {
   const stack = [root];
   while (stack.length) {
@@ -152,7 +152,6 @@ export function visitEffect(
 export namespace visitEffect {
   /** Value to return from within a `visitEffect` visitor to continue visitation */
   export const proceed = Symbol();
-  export type proceed = typeof proceed;
 }
 
 // TODO: should this include custom inspection as well?
