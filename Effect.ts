@@ -165,18 +165,18 @@ function inspectEffect(this: Effect, inspect: Inspect): string {
   const segments: InspectEffectSegment[] = [];
   visitEffect(this, (current) => {
     if (lookup[current.id]) return;
-    lookup[current.id] = [++i, current];
+    lookup[current.id] = [i++, current];
     return visitEffect.proceed;
   });
   for (const id in lookup) {
-    const [currentI, { kind, zone, args }] = lookup[id]!;
-    segments.unshift({
-      i: i - currentI,
+    const [i, { kind, zone, args }] = lookup[id]!;
+    segments.push({
+      i,
       kind,
       ...zone && { zone },
       ...args?.length && {
         args: args.map((arg) => {
-          return isEffect(arg) ? new Ref(lookup[arg.id]![0] - 2) : arg;
+          return isEffect(arg) ? new Ref(lookup[arg.id]![0]) : arg;
         }),
       },
     });
