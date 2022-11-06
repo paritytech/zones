@@ -1,8 +1,7 @@
-/** Wrap the result of this effect in an object of the specified key */
-
 import { $, E, Effect, effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
+/** Wrap the result of this effect in an object of the specified key */
 export function wrap<Target, Key extends $<PropertyKey>>(
   target: Target,
   key: Key,

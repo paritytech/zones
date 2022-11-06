@@ -1,5 +1,10 @@
 import { Effect } from "./Effect.ts";
 
+/**
+ * A wrapper error, thrown when the effect-specific implementation throws
+ * unexpectedly. This error contains the `source` (Effect) and `cause` (whatever
+ * was thrown) for debugging purposes.
+ */
 export class ZonesError extends Error {
   static MESSAGE =
     "An untyped throw occurred within an effect-specific implementation";

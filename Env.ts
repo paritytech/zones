@@ -1,20 +1,29 @@
 import { Effect, isEffect, visitEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
+// TODO: what other hooks / props may be useful?
+/** Props to optionally supply to env */
 export interface EnvProps {
-  hooks?: ThisType<HookContext> & {
+  /** Callbacks to trigger at different points in the effect initialization lifecycle */
+  hooks?: ThisType<EnvHookContext> & {
+    /** Before ingesting an effect into the env */
     beforeInit?: () => void;
+    /** After ingesting an effect into the env */
     afterInit?: () => void;
   };
 }
-export interface HookContext extends Env {
+
+/** The context with which hooks execute */
+export interface EnvHookContext extends Env {
   currentRoot: Effect;
 }
 
+/** Construct a new execution environment */
 export function env(props?: EnvProps): Env {
   return new Env(props);
 }
 
+/** The container for past runs, ids and other state */
 export class Env {
   round = 0;
   runners: Record<string, () => unknown> = {};
@@ -24,8 +33,9 @@ export class Env {
 
   constructor(readonly props?: EnvProps) {}
 
+  /** Initialize an effect root (aka., id all of its unique children) */
   init = (root: Effect) => {
-    const hookCtx: HookContext = { ...this, currentRoot: root };
+    const hookCtx: EnvHookContext = { ...this, currentRoot: root };
     this.props?.hooks?.beforeInit?.apply(hookCtx);
     visitEffect(root, (current) => {
       if (this.runners[current.id]) return;
@@ -37,14 +47,17 @@ export class Env {
     return this.runners[root.id]!;
   };
 
+  /** Retrieving the runner of a given effect */
   getRunner = (effect: Effect) => {
     return this.runners[effect.id]!;
   };
 
+  /** Return the value of––if it is an effect––its resolution */
   resolve = (x: unknown) => {
     return isEffect(x) ? this.getRunner(x)!() : x;
   };
 
+  /** Define or access state, unique to the specified key and constructor */
   var = <T>(key: string, ctor: new() => T): T => {
     let state = this.vars[key];
     if (!state) {

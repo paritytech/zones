@@ -1,6 +1,7 @@
 import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
+/** Props required by the `effect` factory */
 export interface EffectProps {
   /** A human-readable name for this type of effect */
   readonly kind: string;
@@ -54,6 +55,7 @@ export interface Effect<T = any, E extends Error = Error>
 
 declare const T_: unique symbol;
 declare const E_: unique symbol;
+/** Effect control flow representations */
 export type EffectPhantoms<T, E extends Error> = {
   /** The ok result type */
   readonly [T_]: T;
@@ -61,6 +63,7 @@ export type EffectPhantoms<T, E extends Error> = {
   readonly [E_]: E;
 };
 
+/** The method with which one executes an effect */
 export type EffectRun<T, E extends Error> = (env?: Env) => Promise<T | E>;
 
 /** Utilities for common operations on effects */
@@ -107,12 +110,15 @@ function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
   };
 }
 
+/** The effect-specific runtime behavior */
 export type EffectInit<T = any, E extends Error = Error> = (
   this: Effect<T, E>,
   env: Env,
 ) => () => unknown;
 
+/** Extract the resolved value type of an effect */
 export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
+/** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
 
 export type $<T> = T | Effect<T>;
@@ -125,6 +131,7 @@ export function isEffect(inQuestion: unknown): inQuestion is Effect {
 }
 
 /**
+ * Visit the unique nodes of the effect tree
  * @param root the root of the visitation target tree
  * @param visit the visitor fn, which should return `visitEffect.proceed` in order to proceed with subsequent visitations
  */
@@ -143,6 +150,7 @@ export function visitEffect(
   }
 }
 export namespace visitEffect {
+  /** Value to return from within a `visitEffect` visitor to continue visitation */
   export const proceed = Symbol();
   export type proceed = typeof proceed;
 }
@@ -151,7 +159,7 @@ export namespace visitEffect {
 class Ref {
   constructor(readonly to: number) {}
 }
-export function inspectEffect(this: Effect, inspect: Inspect): string {
+function inspectEffect(this: Effect, inspect: Inspect): string {
   let i = 0;
   const lookup: Record<string, [i: number, source: Effect]> = {};
   const segments: InspectEffectSegment[] = [];
