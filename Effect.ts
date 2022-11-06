@@ -149,6 +149,7 @@ export function visitEffect(
     }
   }
 }
+/** Cues for effect visitation */
 export namespace visitEffect {
   /** Value to return from within a `visitEffect` visitor to continue visitation */
   export const proceed = Symbol();

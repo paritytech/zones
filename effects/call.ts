@@ -22,6 +22,7 @@ export function call<D, R>(
     args: [dep, logic],
   });
 }
+/** Utilities for creating and manipulating call effects */
 export namespace call {
   /** A convenience utility for simpler creation of call factories */
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
