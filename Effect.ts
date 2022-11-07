@@ -28,7 +28,7 @@ export interface EffectProps<T, E extends Error> {
 export class Effect<T = any, E extends Error = Error>
   implements EffectProps<T, E>, U.CustomInspects
 {
-  readonly [effect_] = {} as EffectPhantoms<T, E>;
+  declare [effect_]: EffectPhantoms<T, E>;
   /** An id, which encapsulates any child/argument ids */
   readonly id: string;
 
