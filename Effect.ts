@@ -68,9 +68,7 @@ export class Effect<T = any, E extends Error = Error>
   };
 
   /** Utility method to create a new effect that runs the current effect and indexes into its result */
-  access<Key extends $<keyof T>>(
-    key: Key,
-  ): Effect<T[U.AssertKeyof<T, T_<Key>>], E> {
+  access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, T_<K>>], E> {
     const self = this;
     return new Effect({
       kind: "Access",
@@ -87,9 +85,7 @@ export class Effect<T = any, E extends Error = Error>
   }
 
   /** Wrap the result of this effect in an object of the specified key */
-  wrap<Key extends $<PropertyKey>>(
-    key: Key,
-  ): Effect<{ [_ in T_<Key>]: T_<T> }, E> {
+  wrap<K extends $<PropertyKey>>(key: K): Effect<{ [_ in T_<K>]: T_<T> }, E> {
     const self = this;
     return new Effect({
       kind: "Wrap",
