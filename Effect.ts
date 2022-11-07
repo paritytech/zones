@@ -20,6 +20,8 @@ export interface EffectProps<T, E extends Error> {
   readonly kind: string;
   /** The effect-specific runtime behavior */
   readonly init: EffectInit;
+  /** If false, the effect will be recomputed for each unique references */
+  readonly memoize?: boolean;
   /** Any arguments (such as child effects) used in the construction this effect */
   readonly args?: unknown[];
 }
@@ -37,14 +39,16 @@ export class Effect<T = any, E extends Error = Error>
   readonly id: string;
 
   readonly kind;
-  readonly args;
   readonly init;
+  readonly memoize;
+  readonly args;
 
-  constructor({ kind, args, init }: EffectProps<T, E>) {
+  constructor({ kind, init, memoize, args }: EffectProps<T, E>) {
     this.id = `${kind}(${args?.map(U.id).join(",") || ""})`;
     this.kind = kind;
-    this.args = args;
     this.init = init;
+    this.memoize = memoize;
+    this.args = args;
   }
 
   [U.denoCustomInspect] = U.denoCustomInspectDelegate;

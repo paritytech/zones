@@ -16,11 +16,12 @@ function try_<
     kind: "Try",
     init(env) {
       // TODO: get this working properly
-      return U.memo(() => {
+      return () => {
         return U.thenErr(env.getRunner(attempt)(), fallback);
-      });
+      };
     },
     args: [attempt, fallback],
+    memoize: true,
   });
 }
 Object.defineProperty(try_, "name", {

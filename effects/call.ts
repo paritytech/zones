@@ -12,14 +12,15 @@ export function call<D, R>(
   return new Effect({
     kind: "Call",
     init(env) {
-      return U.memo(() => {
+      return () => {
         return U.thenOk(
           env.resolve(dep),
           wrapThrows((depResolved) => logic(depResolved as T<D>, env), this),
         );
-      });
+      };
     },
     args: [dep, logic],
+    memoize: true,
   });
 }
 /** Utilities for creating and manipulating call effects */
