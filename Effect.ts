@@ -172,10 +172,11 @@ function inspectEffect(this: Effect, inspect: U.Inspect): string {
     return visitEffect.proceed;
   });
   for (const id in lookup) {
-    const [i, { kind, args }] = lookup[id]!;
+    const [i, { kind, zone, args }] = lookup[id]!;
     segments.push({
       i,
       kind,
+      ...zone && { zone },
       ...args?.length && {
         args: args.map((arg) => {
           return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
