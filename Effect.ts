@@ -118,7 +118,8 @@ export class Effect<T = any, E extends Error = Error>
 }
 
 /** The effect-specific runtime behavior */
-export type EffectInit = (this: Effect, env: Env) => () => unknown;
+export type EffectInit = (this: Effect, env: Env) => EffectInitRunner;
+export type EffectInitRunner = () => unknown;
 
 /** Produce a run fn, bound to the specified env */
 export type EffectBind<T, E extends Error = Error> = (

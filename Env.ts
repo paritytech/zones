@@ -1,21 +1,16 @@
-import { Effect, visitEffect } from "./Effect.ts";
+import { Effect, EffectInitRunner, visitEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
 // TODO: what other hooks / props may be useful?
 /** Props to optionally supply to env */
 export interface EnvProps {
   /** Callbacks to trigger at different points in the effect initialization lifecycle */
-  hooks?: ThisType<EnvHookContext> & {
+  hooks?: ThisType<Env> & {
     /** Before ingesting an effect into the env */
     beforeInit?: () => void;
     /** After ingesting an effect into the env */
     afterInit?: () => void;
   };
-}
-
-/** The context with which hooks execute */
-export interface EnvHookContext extends Env {
-  currentRoot: Effect;
 }
 
 /** Construct a new execution environment */
@@ -26,7 +21,7 @@ export function env(props?: EnvProps): Env {
 /** The container for past runs, ids and other state */
 export class Env {
   round = 0;
-  runners: Record<string, () => unknown> = {};
+  runners: Record<string, EffectInitRunner> = {};
   // TODO: Use finalization registry to clean up.
   //       We don't use a weak map bc we may want to inspect values.
   vars: Record<string, Map<new() => unknown, unknown>> = {};
@@ -35,8 +30,7 @@ export class Env {
 
   /** Initialize an effect root (aka., id all of its unique children) */
   init = (root: Effect) => {
-    const hookCtx: EnvHookContext = { ...this, currentRoot: root };
-    this.props?.hooks?.beforeInit?.apply(hookCtx);
+    this.props?.hooks?.beforeInit?.apply(this);
     visitEffect(root, (current) => {
       if (this.runners[current.id]) return;
       const runner = current.init(this);
@@ -46,8 +40,7 @@ export class Env {
           : runner;
       return visitEffect.proceed;
     });
-    this.props?.hooks?.afterInit?.apply(hookCtx);
-    this.round++;
+    this.props?.hooks?.afterInit?.apply(this);
     return this.runners[root.id]!;
   };
 
@@ -57,8 +50,8 @@ export class Env {
   };
 
   /** Return the value of––if it is an effect––its resolution */
-  resolve = (x: unknown) => {
-    return x instanceof Effect ? this.getRunner(x)!() : x;
+  resolve = (value: unknown) => {
+    return value instanceof Effect ? this.getRunner(value)!() : value;
   };
 
   /** Define or access state, unique to the specified key and constructor */
