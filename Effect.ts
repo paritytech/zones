@@ -1,28 +1,34 @@
 import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
-/** Props required by the `effect` factory */
-export interface EffectProps<T, E extends Error> {
-  /** A human-readable name for this type of effect */
-  readonly kind: string;
-  /** The effect-specific runtime behavior */
-  readonly init: EffectInit<T, E>;
-  /** Any arguments (such as child effects) used in the construction this effect */
-  readonly args?: unknown[];
-}
+const effect_ = Symbol();
 
 declare const T_: unique symbol;
 declare const E_: unique symbol;
+
+export interface EffectPhantoms<T, E extends Error> {
+  /** The ok result type */
+  readonly [T_]: T;
+  /** The error result type */
+  readonly [E_]: E;
+}
+
+/** Props required by the `effect` factory */
+export interface EffectProps<T, E extends Error> {
+  readonly [effect_]?: EffectPhantoms<T, E>;
+  /** A human-readable name for this type of effect */
+  readonly kind: string;
+  /** The effect-specific runtime behavior */
+  readonly init: EffectInit;
+  /** Any arguments (such as child effects) used in the construction this effect */
+  readonly args?: unknown[];
+}
 
 /** A typed representation of some computation */
 export class Effect<T = any, E extends Error = Error>
   implements EffectProps<T, E>, U.CustomInspects
 {
-  /** The ok result type */
-  declare readonly [T_]: T;
-  /** The error result type */
-  declare readonly [E_]: E;
-
+  readonly [effect_] = {} as EffectPhantoms<T, E>;
   /** An id, which encapsulates any child/argument ids */
   readonly id: string;
 
@@ -111,10 +117,7 @@ export class Effect<T = any, E extends Error = Error>
 }
 
 /** The effect-specific runtime behavior */
-export type EffectInit<T, E extends Error> = (
-  this: Effect<T, E>,
-  env: Env,
-) => () => unknown;
+export type EffectInit = (this: Effect, env: Env) => () => unknown;
 
 /** Produce a run fn, bound to the specified env */
 export type EffectBind<T = any, E extends Error = Error> = (
