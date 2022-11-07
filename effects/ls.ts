@@ -8,10 +8,11 @@ export function ls<Elements extends unknown[]>(
   return new Effect({
     kind: "Ls",
     init(env) {
-      return U.memo(() => {
+      return () => {
         return U.all(...elements.map(env.resolve));
-      });
+      };
     },
+    memoize: true,
     args: elements,
   });
 }

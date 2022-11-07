@@ -78,13 +78,14 @@ export class Effect<T = any, E extends Error = Error>
     return new Effect({
       kind: "Access",
       init(env) {
-        return U.memo(() => {
+        return () => {
           return U.thenOk(
             U.all(env.getRunner(self)(), env.resolve(key)),
             ([self, key]) => self[key],
           );
-        });
+        };
       },
+      memoize: true,
       args: [self, key],
     });
   }
