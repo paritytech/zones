@@ -6,7 +6,7 @@ const effect_ = Symbol();
 declare const T_: unique symbol;
 declare const E_: unique symbol;
 
-export interface EffectPhantoms<T, E extends Error> {
+interface EffectPhantoms<T, E extends Error> {
   /** The ok result type */
   readonly [T_]: T;
   /** The error result type */
@@ -135,7 +135,7 @@ export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
 type T_<U> = T<U>;
 /** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
-
+/** Produces a union of `T` with a widened effect that resolves to `T` */
 export type $<T> = T | Effect<T>;
 
 /**
