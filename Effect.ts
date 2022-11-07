@@ -28,12 +28,13 @@ export interface EffectProps<T, E extends Error> {
 export class Effect<T = any, E extends Error = Error>
   implements EffectProps<T, E>, U.CustomInspects
 {
-  declare [effect_]: EffectPhantoms<T, E>;
-  /** An id, which encapsulates any child/argument ids */
-  readonly id: string;
+  declare [effect_]?: EffectPhantoms<T, E>;
 
   /** If defined, `zone` may indicate a serialization boundary */
   declare zone?: string;
+
+  /** An id, which encapsulates any child/argument ids */
+  readonly id: string;
 
   readonly kind;
   readonly args;
