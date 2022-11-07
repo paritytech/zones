@@ -20,7 +20,7 @@ function try_<
         return U.thenErr(env.getRunner(attempt)(), fallback);
       };
     },
-    args: [attempt, fallback],
+    items: [attempt, fallback],
     memoize: true,
   });
 }

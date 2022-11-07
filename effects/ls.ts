@@ -13,7 +13,7 @@ export function ls<Elements extends unknown[]>(
       };
     },
     memoize: true,
-    args: elements,
+    items: elements,
   });
 }
 

@@ -1,4 +1,5 @@
 import { Env } from "./Env.ts";
+import { wrapThrows } from "./Error.ts";
 import * as U from "./util/mod.ts";
 
 const effect_ = Symbol();
@@ -22,8 +23,8 @@ export interface EffectProps<T, E extends Error> {
   readonly init: EffectInit;
   /** If false, the effect will be recomputed for each unique references */
   readonly memoize?: boolean;
-  /** Any arguments (such as child effects) used in the construction this effect */
-  readonly args?: unknown[];
+  /** Any values (potentially child effects) which contribute to the effect's id */
+  readonly items?: unknown[];
 }
 
 /** A typed representation of some computation */
@@ -41,14 +42,14 @@ export class Effect<T = any, E extends Error = Error>
   readonly kind;
   readonly init;
   readonly memoize;
-  readonly args;
+  readonly items;
 
-  constructor({ kind, init, memoize, args }: EffectProps<T, E>) {
-    this.id = `${kind}(${args?.map(U.id).join(",") || ""})`;
+  constructor({ kind, init, memoize, items }: EffectProps<T, E>) {
+    this.id = `${kind}(${items?.map(U.id).join(",") || ""})`;
     this.kind = kind;
     this.init = init;
     this.memoize = memoize;
-    this.args = args;
+    this.items = items;
   }
 
   [U.denoCustomInspect] = U.denoCustomInspectDelegate;
@@ -72,6 +73,26 @@ export class Effect<T = any, E extends Error = Error>
     return clone;
   };
 
+  /** Create an effect which resolves to the result of `logic`, called with the resolved `dep` */
+  next<R>(
+    logic: (depResolved: T, env: Env) => R,
+  ): Effect<Exclude<Awaited<R>, Error>, E | Extract<Awaited<R>, Error>> {
+    const self = this;
+    return new Effect({
+      kind: "Next",
+      init(env) {
+        return () => {
+          return U.thenOk(
+            env.resolve(self),
+            wrapThrows((depResolved) => logic(depResolved as T, env), this),
+          );
+        };
+      },
+      items: [self, logic],
+      memoize: true,
+    });
+  }
+
   /** Utility method to create a new effect that runs the current effect and indexes into its result */
   access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, T_<K>>], E> {
     const self = this;
@@ -86,7 +107,7 @@ export class Effect<T = any, E extends Error = Error>
         };
       },
       memoize: true,
-      args: [self, key],
+      items: [self, key],
     });
   }
 
@@ -103,7 +124,7 @@ export class Effect<T = any, E extends Error = Error>
           );
         });
       },
-      args: [self, key],
+      items: [self, key],
     });
   }
 
@@ -132,10 +153,13 @@ export type EffectRun<T, E extends Error> = () => Promise<T | E>;
 
 /** Extract the resolved value type of an effect */
 export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
-// Re-aliased for use within `Effect` class def without name conflict
-type T_<U> = T<U>;
 /** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
+
+// Re-aliased for use within `Effect` class def without name conflict
+type T_<U> = T<U>;
+type E_<U> = E<U>;
+
 /** Produces a union of `T` with a widened effect that resolves to `T` */
 export type $<T> = T | Effect<T>;
 
@@ -151,8 +175,8 @@ export function visitEffect(
   const stack = [root];
   while (stack.length) {
     const current = stack.pop()!;
-    if (visit(current) === visitEffect.proceed && current.args) {
-      for (const arg of current.args) {
+    if (visit(current) === visitEffect.proceed && current.items) {
+      for (const arg of current.items) {
         arg instanceof Effect && stack.push(arg);
       }
     }
@@ -175,13 +199,13 @@ function inspectEffect(this: Effect, inspect: U.Inspect): string {
     return visitEffect.proceed;
   });
   for (const id in lookup) {
-    const [i, { kind, zone, args }] = lookup[id]!;
+    const [i, { kind, zone, items }] = lookup[id]!;
     segments.push({
       i,
       kind,
       ...zone && { zone },
-      ...args?.length && {
-        args: args.map((arg) => {
+      ...items?.length && {
+        args: items.map((arg) => {
           return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
         }),
       },

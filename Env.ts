@@ -32,12 +32,13 @@ export class Env {
   init = (root: Effect) => {
     this.props?.hooks?.beforeInit?.apply(this);
     visitEffect(root, (current) => {
-      if (this.runners[current.id]) return;
-      const runner = current.init(this);
-      this.runners[current.id] =
-        current.memoize === undefined || current.memoize
-          ? U.memo(runner)
-          : runner;
+      if (!this.runners[current.id]) {
+        const runner = current.init(this);
+        this.runners[current.id] =
+          current.memoize === undefined || current.memoize
+            ? U.memo(runner)
+            : runner;
+      }
       return visitEffect.proceed;
     });
     this.props?.hooks?.afterInit?.apply(this);

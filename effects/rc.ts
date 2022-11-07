@@ -18,7 +18,7 @@ export function rc<Args extends RcArgs>(
         );
       };
     },
-    args,
+    items: args,
   });
 }
 

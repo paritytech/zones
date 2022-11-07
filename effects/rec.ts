@@ -18,7 +18,7 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
         });
       };
     },
-    args: [...keys, ...values],
+    items: [...keys, ...values],
     memoize: true,
   });
 }
