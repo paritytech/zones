@@ -1,122 +1,143 @@
 import { Env } from "./Env.ts";
 import * as U from "./util/mod.ts";
 
-/** Props required by the `effect` factory */
-export interface EffectProps {
-  /** A human-readable name for this type of effect */
-  readonly kind: string;
-  /** Any arguments (such as child effects) used in the construction this effect */
-  readonly args?: unknown[];
-  /** The effect-specific runtime behavior */
-  readonly init: EffectInit;
-}
-
 const effect_ = Symbol();
-
-/** A factory with which to create effects */
-export function effect<T, E extends Error>(props: EffectProps): Effect<T, E> {
-  return {
-    [effect_]: {} as EffectPhantoms<T, E>,
-    id: `${props.kind}(${props.args?.map(U.id).join(",") || ""})`,
-    run(env) {
-      return (env || new Env()).init(this)() as any;
-    },
-    ...U.customInspects(inspectEffect),
-    ...props,
-    ...util(),
-  };
-}
-
-/** A typed representation of some computation */
-export interface Effect<T = any, E extends Error = Error>
-  extends EffectProps, EffectUtil<T, E>, U.CustomInspects
-{
-  /** A branded, empty object, whose presence indicates the type is an effect */
-  readonly [effect_]: EffectPhantoms<T, E>;
-  /** An id, which encapsulates any child/argument ids */
-  readonly id: string;
-  /** Execute the current effect with either a specified or new env */
-  readonly run: EffectRun<T, E>;
-  /** If defined, `zone` is the name of the serialization boundary */
-  readonly zone?: string;
-}
 
 declare const T_: unique symbol;
 declare const E_: unique symbol;
-/** Effect control flow representations */
-export type EffectPhantoms<T, E extends Error> = {
+
+interface EffectPhantoms<T, E extends Error> {
   /** The ok result type */
   readonly [T_]: T;
   /** The error result type */
   readonly [E_]: E;
-};
+}
 
-/** The method with which one executes an effect */
-export type EffectRun<T, E extends Error> = (env?: Env) => Promise<T | E>;
+/** Props required by the `effect` factory */
+export interface EffectProps<T, E extends Error> {
+  readonly [effect_]?: EffectPhantoms<T, E>;
+  /** A human-readable name for this type of effect */
+  readonly kind: string;
+  /** The effect-specific runtime behavior */
+  readonly init: EffectInit;
+  /** If false, the effect will be recomputed for each unique references */
+  readonly memoize?: boolean;
+  /** Any arguments (such as child effects) used in the construction this effect */
+  readonly args?: unknown[];
+}
 
-/** Utilities for common operations on effects */
-export type EffectUtil<T, E extends Error> = {
-  /** Readonly produce a new effect with a specified name */
-  zoned(name: string): Effect<T, E>;
-  /** Utility method to create a new effect that runs the current effect and indexes into its result */
-  access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, K>], E>;
-  /** Override `T` */
-  as<U extends T>(): Effect<U, E>;
-  /** Exclude members of `E` */
-  excludeErr<C extends E>(): Effect<T, Exclude<E, C>>;
-  /** Stores effect-specific debugging queues */
-  debug?: any;
-};
+/** A typed representation of some computation */
+export class Effect<T = any, E extends Error = Error>
+  implements EffectProps<T, E>, U.CustomInspects
+{
+  declare [effect_]?: EffectPhantoms<T, E>;
 
-function util<T, E extends Error>(): ThisType<Effect<T, E>> & EffectUtil<T, E> {
-  return {
-    zoned(zone) {
-      return { ...this, zone };
-    },
-    access(key) {
-      const self = this;
-      return effect({
-        kind: "Access",
-        init(env) {
-          return U.memo(() => {
-            return U.thenOk(
-              U.all(env.getRunner(self)(), env.resolve(key)),
-              ([target, key]) => target[key],
-            );
-          });
-        },
-        args: [self, key],
-      });
-    },
-    as<U extends T>() {
-      return this as unknown as Effect<U, E>;
-    },
-    excludeErr<S extends E>() {
-      return this as unknown as Effect<T, Exclude<E, S>>;
-    },
-    debug: undefined,
+  /** If defined, `zone` may indicate a serialization boundary */
+  declare zone?: string;
+
+  /** An id, which encapsulates any child/argument ids */
+  readonly id: string;
+
+  readonly kind;
+  readonly init;
+  readonly memoize;
+  readonly args;
+
+  constructor({ kind, init, memoize, args }: EffectProps<T, E>) {
+    this.id = `${kind}(${args?.map(U.id).join(",") || ""})`;
+    this.kind = kind;
+    this.init = init;
+    this.memoize = memoize;
+    this.args = args;
+  }
+
+  [U.denoCustomInspect] = U.denoCustomInspectDelegate;
+  [U.nodeCustomInspect] = U.nodeCustomInspectDelegate;
+  inspect = inspectEffect;
+
+  /** Produce a run fn bound to a specific env */
+  bind: EffectBind<T, E> = (env) => {
+    return env.init(this) as any;
   };
+
+  /** Execute the current effect with either an anonymous (temporary) env */
+  run: EffectRun<T, E> = () => {
+    return this.bind(new Env())();
+  };
+
+  /** Produce a new effect with the specified zone name */
+  zoned = (name: string): Effect<T, E> => {
+    const clone = new Effect(this);
+    clone.zone = name;
+    return clone;
+  };
+
+  /** Utility method to create a new effect that runs the current effect and indexes into its result */
+  access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, T_<K>>], E> {
+    const self = this;
+    return new Effect({
+      kind: "Access",
+      init(env) {
+        return () => {
+          return U.thenOk(
+            U.all(env.getRunner(self)(), env.resolve(key)),
+            ([self, key]) => self[key],
+          );
+        };
+      },
+      memoize: true,
+      args: [self, key],
+    });
+  }
+
+  /** Wrap the result of this effect in an object of the specified key */
+  wrap<K extends $<PropertyKey>>(key: K): Effect<{ [_ in T_<K>]: T_<T> }, E> {
+    const self = this;
+    return new Effect({
+      kind: "Wrap",
+      init(env) {
+        return U.memo(() => {
+          return U.thenOk(
+            U.all(env.resolve(self), env.resolve(key)),
+            ([self, key]) => ({ [key]: self }),
+          );
+        });
+      },
+      args: [self, key],
+    });
+  }
+
+  /** Override `T` */
+  as<U extends T>(): Effect<U, E> {
+    return this as any;
+  }
+
+  /** Exclude members of `E` */
+  excludeErr<S extends E>(): Effect<T, Exclude<E, S>> {
+    return this as any;
+  }
 }
 
 /** The effect-specific runtime behavior */
-export type EffectInit<T = any, E extends Error = Error> = (
-  this: Effect<T, E>,
+export type EffectInit = (this: Effect, env: Env) => EffectInitRunner;
+export type EffectInitRunner = () => unknown;
+
+/** Produce a run fn, bound to the specified env */
+export type EffectBind<T, E extends Error = Error> = (
   env: Env,
-) => () => unknown;
+) => EffectRun<T, E>;
+
+/** The method with which one executes an effect */
+export type EffectRun<T, E extends Error> = () => Promise<T | E>;
 
 /** Extract the resolved value type of an effect */
 export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
+// Re-aliased for use within `Effect` class def without name conflict
+type T_<U> = T<U>;
 /** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
-
+/** Produces a union of `T` with a widened effect that resolves to `T` */
 export type $<T> = T | Effect<T>;
-
-/** Determine whether a value is an Effect */
-export function isEffect(inQuestion: unknown): inQuestion is Effect {
-  return typeof inQuestion === "object"
-    && inQuestion !== null
-    && effect_ in inQuestion;
-}
 
 /**
  * Visit the unique nodes of the effect tree
@@ -132,7 +153,7 @@ export function visitEffect(
     const current = stack.pop()!;
     if (visit(current) === visitEffect.proceed && current.args) {
       for (const arg of current.args) {
-        isEffect(arg) && stack.push(arg);
+        arg instanceof Effect && stack.push(arg);
       }
     }
   }
@@ -143,10 +164,7 @@ export namespace visitEffect {
   export const proceed = Symbol();
 }
 
-// TODO: should this include custom inspection as well?
-class Ref {
-  constructor(readonly to: number) {}
-}
+// TODO: inline segments referenced once
 function inspectEffect(this: Effect, inspect: U.Inspect): string {
   let i = 0;
   const lookup: Record<string, [i: number, source: Effect]> = {};
@@ -164,17 +182,20 @@ function inspectEffect(this: Effect, inspect: U.Inspect): string {
       ...zone && { zone },
       ...args?.length && {
         args: args.map((arg) => {
-          return isEffect(arg) ? new Ref(lookup[arg.id]![0]) : arg;
+          return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
         }),
       },
     });
   }
   return inspect(segments);
 }
-
 interface InspectEffectSegment {
   i: number;
   kind: string;
   zone?: string;
   args?: unknown[];
+}
+// TODO: should this include custom inspection as well?
+class Ref {
+  constructor(readonly to: number) {}
 }

@@ -1,4 +1,4 @@
-import { $, E, Effect, effect, T } from "../Effect.ts";
+import { $, E, Effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 /** Create an effect that resolves to the value-resolved equivalent of `fields` */
@@ -7,18 +7,19 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
 ): Effect<RecT<Fields>, E<Fields[keyof Fields]>> {
   const keys = Object.keys(fields);
   const values = Object.values(fields);
-  return effect({
+  return new Effect({
     kind: "Rec",
     init(env) {
-      return U.memo(() => {
+      return () => {
         return U.thenOk(U.all(...values.map(env.resolve)), (values) => {
           return keys.reduce((acc, cur, i) => {
             return { ...acc, [cur]: values[i]! };
           }, {});
         });
-      });
+      };
     },
     args: [...keys, ...values],
+    memoize: true,
   });
 }
 

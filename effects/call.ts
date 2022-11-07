@@ -1,4 +1,4 @@
-import { E, Effect, effect, T } from "../Effect.ts";
+import { E, Effect, T } from "../Effect.ts";
 import { Env } from "../Env.ts";
 import { wrapThrows } from "../Error.ts";
 import * as U from "../util/mod.ts";
@@ -9,17 +9,18 @@ export function call<D, R>(
   dep: D,
   logic: CallLogic<D, R>,
 ): Effect<Exclude<Awaited<R>, Error>, E<D> | Extract<Awaited<R>, Error>> {
-  return effect({
+  return new Effect({
     kind: "Call",
     init(env) {
-      return U.memo(() => {
+      return () => {
         return U.thenOk(
           env.resolve(dep),
           wrapThrows((depResolved) => logic(depResolved as T<D>, env), this),
         );
-      });
+      };
     },
     args: [dep, logic],
+    memoize: true,
   });
 }
 /** Utilities for creating and manipulating call effects */
