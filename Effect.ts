@@ -120,8 +120,7 @@ export class Effect<T = any, E extends Error = Error>
 export type EffectInit = (this: Effect, env: Env) => () => unknown;
 
 /** Produce a run fn, bound to the specified env */
-export type EffectBind<T = any, E extends Error = Error> = (
-  this: Effect<T, E>,
+export type EffectBind<T, E extends Error = Error> = (
   env: Env,
 ) => EffectRun<T, E>;
 
