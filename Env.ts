@@ -40,7 +40,10 @@ export class Env {
     visitEffect(root, (current) => {
       if (this.runners[current.id]) return;
       const runner = current.init(this);
-      this.runners[current.id] = current.memoize ? U.memo(runner) : runner;
+      this.runners[current.id] =
+        current.memoize === undefined || current.memoize
+          ? U.memo(runner)
+          : runner;
       return visitEffect.proceed;
     });
     this.props?.hooks?.afterInit?.apply(hookCtx);
