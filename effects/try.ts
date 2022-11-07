@@ -1,4 +1,4 @@
-import { E, Effect, effect, T } from "../Effect.ts";
+import { E, Effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 /** If the `attempt` effect produces an error, intercept that error and return a new value */
@@ -12,7 +12,7 @@ function try_<
   T<Attempt> | Exclude<Awaited<FallbackR>, Error>,
   Extract<Awaited<FallbackR>, Error>
 > {
-  return effect({
+  return new Effect({
     kind: "Try",
     init(env) {
       // TODO: get this working properly

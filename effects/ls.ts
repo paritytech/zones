@@ -1,11 +1,11 @@
-import { $, E, Effect, effect, T } from "../Effect.ts";
+import { $, E, Effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 /** Create an effect that resolves to a list of the specified elements resolved */
 export function ls<Elements extends unknown[]>(
   ...elements: Elements
 ): Effect<LsT<Elements>, E<Elements[number]>> {
-  return effect({
+  return new Effect({
     kind: "Ls",
     init(env) {
       return U.memo(() => {

@@ -1,19 +1,22 @@
-const denoCustomInspect = Symbol.for("Deno.customInspect");
-const nodeCustomInspect = Symbol.for("nodejs.util.inspect.custom");
+export const denoCustomInspect = Symbol.for("Deno.customInspect");
+export const nodeCustomInspect = Symbol.for("nodejs.util.inspect.custom");
 
-export function customInspects(
-  inspect: RuntimeAgnosticCustomInspect,
-): CustomInspects {
-  return {
-    [denoCustomInspect](inspect, options) {
-      return this.inspect((value) => inspect(value, options));
-    },
-    [nodeCustomInspect](_0, _1, inspect) {
-      return this.inspect(inspect);
-    },
-    inspect,
-  };
-}
+export const denoCustomInspectDelegate: DenoCustomInspect = function(
+  this,
+  inspect,
+  options,
+) {
+  return this.inspect((value) => inspect(value, options));
+};
+
+export const nodeCustomInspectDelegate: NodeCustomInspect = function(
+  this,
+  _depth,
+  _options,
+  inspect,
+) {
+  return this.inspect(inspect);
+};
 
 export interface CustomInspects {
   /** Runtime-agnostic custom inspect */
@@ -25,12 +28,14 @@ export interface CustomInspects {
 }
 
 export type Inspect = (value: unknown) => string;
-type RuntimeAgnosticCustomInspect = (inspect: Inspect) => string;
-type DenoCustomInspect = (
+export type RuntimeAgnosticCustomInspect = (inspect: Inspect) => string;
+export type DenoCustomInspect = (
+  this: CustomInspects,
   inspect: (value: unknown, opts: Deno.InspectOptions) => string,
   opts: Deno.InspectOptions,
 ) => string;
-type NodeCustomInspect = (
+export type NodeCustomInspect = (
+  this: CustomInspects,
   depth: number,
   options: unknown,
   inspect: Inspect,

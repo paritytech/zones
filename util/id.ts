@@ -1,4 +1,4 @@
-import { isEffect } from "../Effect.ts";
+import { Effect } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
 let i = 0;
@@ -36,7 +36,7 @@ export function id(target: unknown): string {
       return `fn(${target.name})`;
     }
     case "object": {
-      if (isEffect(target)) {
+      if (target instanceof Effect) {
         return target.id;
       } else if (target === null) {
         return "null";

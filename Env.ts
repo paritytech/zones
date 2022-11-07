@@ -1,4 +1,4 @@
-import { Effect, isEffect, visitEffect } from "./Effect.ts";
+import { Effect, visitEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
 // TODO: what other hooks / props may be useful?
@@ -39,7 +39,11 @@ export class Env {
     this.props?.hooks?.beforeInit?.apply(hookCtx);
     visitEffect(root, (current) => {
       if (this.runners[current.id]) return;
-      this.runners[current.id] = current.init(this);
+      const runner = current.init(this);
+      if (!runner) {
+        console.log(current);
+      }
+      this.runners[current.id] = runner;
       return visitEffect.proceed;
     });
     this.props?.hooks?.afterInit?.apply(hookCtx);
@@ -54,7 +58,7 @@ export class Env {
 
   /** Return the value of––if it is an effect––its resolution */
   resolve = (x: unknown) => {
-    return isEffect(x) ? this.getRunner(x)!() : x;
+    return x instanceof Effect ? this.getRunner(x)!() : x;
   };
 
   /** Define or access state, unique to the specified key and constructor */

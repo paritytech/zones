@@ -1,7 +1,5 @@
 import * as Z from "../mod.ts";
 
-// TODO: show use of ctx
-
 let dupI = 0;
 function dup() {
   return Z.call(0, () => {

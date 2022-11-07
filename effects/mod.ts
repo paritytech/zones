@@ -5,4 +5,3 @@ export * from "./rc.ts";
 export * from "./rec.ts";
 export * from "./round.ts";
 export * from "./try.ts";
-export * from "./wrap.ts";

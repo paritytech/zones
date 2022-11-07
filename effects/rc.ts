@@ -1,4 +1,4 @@
-import { E, Effect, effect } from "../Effect.ts";
+import { E, Effect } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 import { LsT } from "./ls.ts";
 
@@ -6,7 +6,7 @@ import { LsT } from "./ls.ts";
 export function rc<Args extends RcArgs>(
   ...args: Args
 ): Effect<RcT<Args>, E<Args[number]>> {
-  return effect({
+  return new Effect({
     kind: "Rc",
     init(env) {
       const counter = env.var(`Rc(${U.id(args[0])})`, RcCounter);

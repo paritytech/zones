@@ -1,4 +1,4 @@
-import { E, Effect, effect, T } from "../../Effect.ts";
+import { E, Effect, T } from "../../Effect.ts";
 import { wrapThrows } from "../../Error.ts";
 import * as U from "../../util/mod.ts";
 
@@ -6,7 +6,7 @@ export function derive<From, IntoR extends Effect>(
   from: From,
   into: DeriveInto<From, IntoR>,
 ): Effect<T<IntoR>, E<From | IntoR>> {
-  return effect({
+  return new Effect({
     kind: "Derive",
     init(env) {
       return () => {
