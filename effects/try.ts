@@ -1,8 +1,8 @@
 import { E, Effect, effect, T } from "../Effect.ts";
 import * as U from "../util/mod.ts";
 
-// TODO: fix this
-export function try_<
+/** If the `attempt` effect produces an error, intercept that error and return a new value */
+function try_<
   Attempt extends Effect,
   FallbackR extends T<Attempt> | Error,
 >(
@@ -15,6 +15,7 @@ export function try_<
   return effect({
     kind: "Try",
     init(env) {
+      // TODO: get this working properly
       return U.memo(() => {
         return U.thenErr(env.getRunner(attempt)(), fallback);
       });
@@ -28,6 +29,7 @@ Object.defineProperty(try_, "name", {
 });
 export { try_ as try };
 
+/** The fallback logic within a `try` effect */
 export type Catch<Target extends Effect, CatchR> = (
   attemptError: E<Target>,
 ) => CatchR;

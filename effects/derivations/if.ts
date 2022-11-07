@@ -1,8 +1,9 @@
-import { $, Effect } from "../../Effect.ts";
+import { Effect } from "../../Effect.ts";
 import { derive } from "./base.ts";
 
+/** Delegate to an effect based on the truthiness of the `condition` effect */
 function if_<
-  Condition extends $<boolean>,
+  Condition,
   Then extends Effect,
   Else extends Effect,
 >(

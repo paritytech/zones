@@ -1,9 +1,10 @@
 import { E, Effect, effect, T } from "../Effect.ts";
 import { Env } from "../Env.ts";
-import { thrownAsUntypedError } from "../Error.ts";
+import { wrapThrows } from "../Error.ts";
 import * as U from "../util/mod.ts";
 import { ls, Ls$ } from "./ls.ts";
 
+/** Create an effect which resolves to the result of `logic`, called with the resolved `dep` */
 export function call<D, R>(
   dep: D,
   logic: CallLogic<D, R>,
@@ -14,17 +15,16 @@ export function call<D, R>(
       return U.memo(() => {
         return U.thenOk(
           env.resolve(dep),
-          thrownAsUntypedError(
-            this,
-            (depResolved) => logic(depResolved as T<D>, env),
-          ),
+          wrapThrows((depResolved) => logic(depResolved as T<D>, env), this),
         );
       });
     },
     args: [dep, logic],
   });
 }
+/** Utilities for creating and manipulating call effects */
 export namespace call {
+  /** A convenience utility for simpler creation of call factories */
   export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
     const fnWrapped = ((a: A) => fn(...a));
     return <X extends Ls$<A>>(...args: X) => {
@@ -55,4 +55,5 @@ export namespace call {
 }
 
 // TODO: decide whether we want to expose `env` moving forward / `this`?
+/** The logic to be supplied to a call effect factory */
 export type CallLogic<D, R> = (depResolved: T<D>, env: Env) => R;
