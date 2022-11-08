@@ -41,12 +41,11 @@ export class Env {
       this.props?.hooks?.beforeInit?.apply(this);
       visitEffect(src, (current) => {
         if (!this.symbols[current.id]) {
-          const runner = current.impl(this);
           this.symbols[current.id] = {
             src: current,
-            bound: current.memoize === undefined || current.memoize
-              ? U.memo(runner)
-              : runner,
+            bound: (current.memoize === undefined || current.memoize
+              ? U.memo
+              : U.identity)(current.impl(this)),
           };
         }
         return visitEffect.proceed;

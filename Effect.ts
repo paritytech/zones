@@ -41,7 +41,7 @@ export class Effect<T = any, E extends Error = Error>
   readonly memoize;
   readonly items;
 
-  /** An id encapsulates any child/argument ids */
+  /** An id, which encapsulates any child effect and argument ids */
   readonly id;
 
   constructor({ kind, impl, memoize, items }: EffectProps<T, E>) {
