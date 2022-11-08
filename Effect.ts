@@ -72,7 +72,7 @@ export class Effect<T = any, E extends Error = Error>
     return clone;
   };
 
-  /** Create an effect which resolves to the result of `logic`, called with the resolved `dep` */
+  /** Create an effect which resolves to the result of `logic`, called with the resolved (this) effect */
   next<R>(
     logic: (depResolved: T) => R,
   ): Effect<Exclude<Awaited<R>, Error>, E | Extract<Awaited<R>, Error>> {
