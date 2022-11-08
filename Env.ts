@@ -25,7 +25,7 @@ export const env = ((props) => new Env(props)) as EnvFactory;
 // TODO: LRU-ify
 /** The container for past runs, ids and other state */
 export class Env {
-  runners: Record<string, EffectImplBound> = {};
+  boundImpls: Record<string, EffectImplBound> = {};
   vars: Record<string, Map<new() => unknown, unknown>> = {};
 
   constructor(readonly props?: EnvProps) {}
@@ -34,9 +34,9 @@ export class Env {
   init = (root: Effect) => {
     this.props?.hooks?.beforeInit?.apply(this);
     visitEffect(root, (current) => {
-      if (!this.runners[current.id]) {
+      if (!this.boundImpls[current.id]) {
         const runner = current.impl(this);
-        this.runners[current.id] =
+        this.boundImpls[current.id] =
           current.memoize === undefined || current.memoize
             ? U.memo(runner)
             : runner;
@@ -44,18 +44,18 @@ export class Env {
       return visitEffect.proceed;
     });
     this.props?.hooks?.afterInit?.apply(this);
-    return this.runners[root.id]!;
+    return this.boundImpls[root.id]!;
   };
 
   /** Retrieving the runner of a given effect */
-  getRunner = (effect: Effect) => {
-    return this.runners[effect.id]!;
+  boundImpl = (effect: Effect) => {
+    return this.boundImpls[effect.id]!;
   };
 
   /** Return the value of––if it is an effect––its resolution */
   resolve = (value: unknown) => {
     return value instanceof Effect
-      ? this.getRunner(value)()
+      ? this.boundImpl(value)()
       : value === env
       ? this
       : value;

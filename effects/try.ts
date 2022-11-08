@@ -17,7 +17,7 @@ function try_<
     impl(env) {
       // TODO: get this working properly
       return () => {
-        return U.thenErr(env.getRunner(attempt)(), fallback);
+        return U.thenErr(env.boundImpl(attempt)(), fallback);
       };
     },
     items: [attempt, fallback],

@@ -100,7 +100,7 @@ export class Effect<T = any, E extends Error = Error>
       impl(env) {
         return () => {
           return U.thenOk(
-            U.all(env.getRunner(self)(), env.resolve(key)),
+            U.all(env.boundImpl(self)(), env.resolve(key)),
             ([self, key]) => self[key],
           );
         };
