@@ -9,7 +9,7 @@ export function rec<Fields extends Record<PropertyKey, unknown>>(
   const values = Object.values(fields);
   return new Effect({
     kind: "Rec",
-    init(env) {
+    impl(env) {
       return () => {
         return U.thenOk(U.all(...values.map(env.resolve)), (values) => {
           return keys.reduce((acc, cur, i) => {

@@ -14,7 +14,7 @@ function try_<
 > {
   return new Effect({
     kind: "Try",
-    init(env) {
+    impl(env) {
       // TODO: get this working properly
       return () => {
         return U.thenErr(env.getRunner(attempt)(), fallback);

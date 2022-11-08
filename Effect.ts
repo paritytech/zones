@@ -1,4 +1,4 @@
-import { Env } from "./Env.ts";
+import { Env, EnvFactory } from "./Env.ts";
 import { wrapThrows } from "./Error.ts";
 import * as U from "./util/mod.ts";
 
@@ -20,7 +20,7 @@ export interface EffectProps<T, E extends Error> {
   /** A human-readable name for this type of effect */
   readonly kind: string;
   /** The effect-specific runtime behavior */
-  readonly init: EffectInit;
+  readonly impl: EffectImpl;
   /** If false, the effect will be recomputed for each unique references */
   readonly memoize?: boolean;
   /** Any values (potentially child effects) which contribute to the effect's id */
@@ -40,14 +40,14 @@ export class Effect<T = any, E extends Error = Error>
   readonly id: string;
 
   readonly kind;
-  readonly init;
+  readonly impl;
   readonly memoize;
   readonly items;
 
-  constructor({ kind, init, memoize, items }: EffectProps<T, E>) {
+  constructor({ kind, impl, memoize, items }: EffectProps<T, E>) {
     this.id = `${kind}(${items?.map(U.id).join(",") || ""})`;
     this.kind = kind;
-    this.init = init;
+    this.impl = impl;
     this.memoize = memoize;
     this.items = items;
   }
@@ -75,16 +75,16 @@ export class Effect<T = any, E extends Error = Error>
 
   /** Create an effect which resolves to the result of `logic`, called with the resolved `dep` */
   next<R>(
-    logic: (depResolved: T, env: Env) => R,
+    logic: (depResolved: T) => R,
   ): Effect<Exclude<Awaited<R>, Error>, E | Extract<Awaited<R>, Error>> {
     const self = this;
     return new Effect({
       kind: "Next",
-      init(env) {
+      impl(env) {
         return () => {
           return U.thenOk(
             env.resolve(self),
-            wrapThrows((depResolved) => logic(depResolved as T, env), this),
+            wrapThrows((depResolved) => logic(depResolved as T), this),
           );
         };
       },
@@ -98,7 +98,7 @@ export class Effect<T = any, E extends Error = Error>
     const self = this;
     return new Effect({
       kind: "Access",
-      init(env) {
+      impl(env) {
         return () => {
           return U.thenOk(
             U.all(env.getRunner(self)(), env.resolve(key)),
@@ -116,7 +116,7 @@ export class Effect<T = any, E extends Error = Error>
     const self = this;
     return new Effect({
       kind: "Wrap",
-      init(env) {
+      impl(env) {
         return U.memo(() => {
           return U.thenOk(
             U.all(env.resolve(self), env.resolve(key)),
@@ -140,8 +140,8 @@ export class Effect<T = any, E extends Error = Error>
 }
 
 /** The effect-specific runtime behavior */
-export type EffectInit = (this: Effect, env: Env) => EffectInitRunner;
-export type EffectInitRunner = () => unknown;
+export type EffectImpl = (this: Effect, env: Env) => EffectImplBound;
+export type EffectImplBound = () => unknown;
 
 /** Produce a run fn, bound to the specified env */
 export type EffectBind<T, E extends Error = Error> = (
@@ -152,7 +152,9 @@ export type EffectBind<T, E extends Error = Error> = (
 export type EffectRun<T, E extends Error> = () => Promise<T | E>;
 
 /** Extract the resolved value type of an effect */
-export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
+export type T<U> = U extends Effect<infer T> ? T
+  : U extends EnvFactory ? Env
+  : Exclude<Awaited<U>, Error>;
 /** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
 

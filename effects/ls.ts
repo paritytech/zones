@@ -7,7 +7,7 @@ export function ls<Elements extends unknown[]>(
 ): Effect<LsT<Elements>, E<Elements[number]>> {
   return new Effect({
     kind: "Ls",
-    init(env) {
+    impl(env) {
       return () => {
         return U.all(...elements.map(env.resolve));
       };

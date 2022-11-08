@@ -8,7 +8,7 @@ export function rc<Args extends RcArgs>(
 ): Effect<RcT<Args>, E<Args[number]>> {
   return new Effect({
     kind: "Rc",
-    init(env) {
+    impl(env) {
       const counter = env.var(`Rc(${U.id(args[0])})`, RcCounter);
       counter.i += 1;
       return () => {

@@ -1,4 +1,4 @@
-import { Effect, EffectInitRunner, visitEffect } from "./Effect.ts";
+import { Effect, EffectImplBound, visitEffect } from "./Effect.ts";
 import * as U from "./util/mod.ts";
 
 // TODO: what other hooks / props may be useful?
@@ -13,17 +13,19 @@ export interface EnvProps {
   };
 }
 
-/** Construct a new execution environment */
-export function env(props?: EnvProps): Env {
-  return new Env(props);
+declare const envFactory_: unique symbol;
+/** Branded type to nominally-represent `env` within the type system */
+export interface EnvFactory {
+  [envFactory_]: true;
+  (props?: EnvProps): Env;
 }
+/** Construct a new execution environment */
+export const env = ((props) => new Env(props)) as EnvFactory;
 
+// TODO: LRU-ify
 /** The container for past runs, ids and other state */
 export class Env {
-  round = 0;
-  runners: Record<string, EffectInitRunner> = {};
-  // TODO: Use finalization registry to clean up.
-  //       We don't use a weak map bc we may want to inspect values.
+  runners: Record<string, EffectImplBound> = {};
   vars: Record<string, Map<new() => unknown, unknown>> = {};
 
   constructor(readonly props?: EnvProps) {}
@@ -33,7 +35,7 @@ export class Env {
     this.props?.hooks?.beforeInit?.apply(this);
     visitEffect(root, (current) => {
       if (!this.runners[current.id]) {
-        const runner = current.init(this);
+        const runner = current.impl(this);
         this.runners[current.id] =
           current.memoize === undefined || current.memoize
             ? U.memo(runner)
@@ -52,7 +54,11 @@ export class Env {
 
   /** Return the value of––if it is an effect––its resolution */
   resolve = (value: unknown) => {
-    return value instanceof Effect ? this.getRunner(value)!() : value;
+    return value instanceof Effect
+      ? this.getRunner(value)!()
+      : value === env
+      ? this
+      : value;
   };
 
   /** Define or access state, unique to the specified key and constructor */

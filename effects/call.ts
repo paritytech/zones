@@ -8,7 +8,7 @@ export function call<R>(
 ): Effect<Exclude<R, Error>, Extract<R, Error>> {
   return new Effect({
     kind: "Call",
-    init: () => fn,
+    impl: () => fn,
     items: [fn],
     memoize: true,
   });
