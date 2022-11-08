@@ -96,6 +96,21 @@ export class Effect<T = any, E extends Error = Error>
     });
   }
 
+  /** Create an effect which executes the current and another specified (maybe) effect in sequence */
+  nextE<U>(next: U): Effect<T | T_<U>, E | E_<U>> {
+    const self = this;
+    return new Effect({
+      kind: "NextE",
+      impl(env) {
+        return () => {
+          return U.thenOk(env.resolve(self), () => env.resolve(next));
+        };
+      },
+      items: [self, next],
+      memoize: true,
+    });
+  }
+
   /** Utility method to create a new effect that runs the current effect and indexes into its result */
   access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, T_<K>>], E> {
     const self = this;
