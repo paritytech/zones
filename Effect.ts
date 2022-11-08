@@ -37,8 +37,7 @@ export class Effect<T = any, E extends Error = Error>
   declare zone?: string;
 
   /** An id, which encapsulates any child/argument ids */
-  readonly id: string;
-
+  readonly id;
   readonly kind;
   readonly impl;
   readonly memoize;
@@ -207,7 +206,7 @@ function inspectEffect(this: Effect, inspect: U.Inspect): string {
       kind,
       ...zone && { zone },
       ...items?.length && {
-        args: items.map((arg) => {
+        items: items.map((arg) => {
           return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
         }),
       },
@@ -219,7 +218,7 @@ interface InspectEffectSegment {
   i: number;
   kind: string;
   zone?: string;
-  args?: unknown[];
+  items?: unknown[];
 }
 // TODO: should this include custom inspection as well?
 class Ref {

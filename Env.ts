@@ -55,7 +55,7 @@ export class Env {
   /** Return the value of––if it is an effect––its resolution */
   resolve = (value: unknown) => {
     return value instanceof Effect
-      ? this.getRunner(value)!()
+      ? this.getRunner(value)()
       : value === env
       ? this
       : value;
