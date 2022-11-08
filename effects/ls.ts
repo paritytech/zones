@@ -12,8 +12,8 @@ export function ls<Elements extends unknown[]>(
         return U.all(...elements.map(env.resolve));
       };
     },
-    memoize: true,
     items: elements,
+    memoize: true,
   });
 }
 

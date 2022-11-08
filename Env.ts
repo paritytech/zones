@@ -13,61 +13,67 @@ export interface EnvProps {
   };
 }
 
+/** Construct a new execution environment */
+export const env = ((props) => new Env(props)) as EnvFactory;
 declare const envFactory_: unique symbol;
-/** Branded type to nominally-represent `env` within the type system */
+/** A branded type to nominally-represent `env` within the type system */
 export interface EnvFactory {
   [envFactory_]: true;
   (props?: EnvProps): Env;
 }
-/** Construct a new execution environment */
-export const env = ((props) => new Env(props)) as EnvFactory;
+
+export interface Symbol {
+  src: Effect;
+  bound: EffectImplBound;
+}
 
 // TODO: LRU-ify
 /** The container for past runs, ids and other state */
 export class Env {
-  boundImpls: Record<string, EffectImplBound> = {};
-  vars: Record<string, Map<new() => unknown, unknown>> = {};
+  symbols: Record<string, Symbol> = {};
+  states: Record<string, Map<new() => unknown, unknown>> = {};
+  round = 0;
 
   constructor(readonly props?: EnvProps) {}
 
-  /** Initialize an effect root (aka., id all of its unique children) */
-  init = (root: Effect) => {
-    this.props?.hooks?.beforeInit?.apply(this);
-    visitEffect(root, (current) => {
-      if (!this.boundImpls[current.id]) {
-        const runner = current.impl(this);
-        this.boundImpls[current.id] =
-          current.memoize === undefined || current.memoize
-            ? U.memo(runner)
-            : runner;
-      }
-      return visitEffect.proceed;
-    });
-    this.props?.hooks?.afterInit?.apply(this);
-    return this.boundImpls[root.id]!;
+  /** Retrieving the symbol corresponding to a given effect */
+  symbol = (src: Effect): Symbol => {
+    const id = src.id(this.round);
+    if (!this.symbols[id]) {
+      this.props?.hooks?.beforeInit?.apply(this);
+      visitEffect(src, (current) => {
+        if (!this.symbols[id]) {
+          const runner = current.impl(this);
+          this.symbols[id] = {
+            src: current,
+            bound: current.memoize === undefined || current.memoize
+              ? U.memo(runner)
+              : runner,
+          };
+        }
+        return visitEffect.proceed;
+      });
+      this.props?.hooks?.afterInit?.apply(this);
+    }
+    return this.symbols[id]!;
   };
 
-  /** Retrieving the runner of a given effect */
-  boundImpl = (effect: Effect) => {
-    return this.boundImpls[effect.id]!;
+  /** Define or access state, unique to the specified key and constructor */
+  state = <T>(key: string, ctor: new() => T): T => {
+    let state = this.states[key];
+    if (!state) {
+      state = new Map();
+      this.states[key] = state;
+    }
+    return U.getOrInit(state, ctor, () => new ctor()) as T;
   };
 
   /** Return the value of––if it is an effect––its resolution */
   resolve = (value: unknown) => {
     return value instanceof Effect
-      ? this.boundImpl(value)()
+      ? this.symbol(value).bound()
       : value === env
       ? this
       : value;
-  };
-
-  /** Define or access state, unique to the specified key and constructor */
-  var = <T>(key: string, ctor: new() => T): T => {
-    let state = this.vars[key];
-    if (!state) {
-      state = new Map();
-      this.vars[key] = state;
-    }
-    return U.getOrInit(state, ctor, () => new ctor()) as T;
   };
 }

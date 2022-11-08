@@ -22,7 +22,7 @@ export interface EffectProps<T, E extends Error> {
   /** The effect-specific runtime behavior */
   readonly impl: EffectImpl;
   /** If false, the effect will be recomputed for each unique references */
-  readonly memoize?: boolean;
+  readonly memoize: boolean;
   /** Any values (potentially child effects) which contribute to the effect's id */
   readonly items?: unknown[];
 }
@@ -36,19 +36,23 @@ export class Effect<T = any, E extends Error = Error>
   /** If defined, `zone` may indicate a serialization boundary */
   declare zone?: string;
 
-  /** An id, which encapsulates any child/argument ids */
-  readonly id;
   readonly kind;
   readonly impl;
   readonly memoize;
   readonly items;
 
   constructor({ kind, impl, memoize, items }: EffectProps<T, E>) {
-    this.id = `${kind}(${items?.map(U.id).join(",") || ""})`;
     this.kind = kind;
     this.impl = impl;
     this.memoize = memoize;
     this.items = items;
+  }
+
+  /** Compute an id, which encapsulates any child/argument ids */
+  id(envRound?: number) {
+    return `${this.kind}(${
+      this.items?.map((item) => U.id(item, envRound)).join(",") || ""
+    })`;
   }
 
   [U.denoCustomInspect] = U.denoCustomInspectDelegate;
@@ -57,7 +61,7 @@ export class Effect<T = any, E extends Error = Error>
 
   /** Produce a run fn bound to a specific env */
   bind: EffectBind<T, E> = (env) => {
-    return env.init(this) as any;
+    return env.symbol(this).bound as any;
   };
 
   /** Execute the current effect with either an anonymous (temporary) env */
@@ -100,13 +104,13 @@ export class Effect<T = any, E extends Error = Error>
       impl(env) {
         return () => {
           return U.thenOk(
-            U.all(env.boundImpl(self)(), env.resolve(key)),
+            U.all(env.symbol(self).bound(), env.resolve(key)),
             ([self, key]) => self[key],
           );
         };
       },
-      memoize: true,
       items: [self, key],
+      memoize: true,
     });
   }
 
@@ -124,6 +128,7 @@ export class Effect<T = any, E extends Error = Error>
         });
       },
       items: [self, key],
+      memoize: true,
     });
   }
 
@@ -190,13 +195,17 @@ export namespace visitEffect {
 }
 
 // TODO: inline segments referenced once
-function inspectEffect(this: Effect, inspect: U.Inspect): string {
+function inspectEffect(
+  this: Effect,
+  inspect: U.Inspect,
+): string {
   let i = 0;
   const lookup: Record<string, [i: number, source: Effect]> = {};
   const segments: InspectEffectSegment[] = [];
   visitEffect(this, (current) => {
-    if (lookup[current.id]) return;
-    lookup[current.id] = [i++, current];
+    const id = current.id(0);
+    if (lookup[id]) return;
+    lookup[id] = [i++, current];
     return visitEffect.proceed;
   });
   for (const id in lookup) {
@@ -207,7 +216,7 @@ function inspectEffect(this: Effect, inspect: U.Inspect): string {
       ...zone && { zone },
       ...items?.length && {
         items: items.map((arg) => {
-          return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
+          return arg instanceof Effect ? new Ref(lookup[arg.id(0)]![0]) : arg;
         }),
       },
     });

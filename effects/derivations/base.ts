@@ -12,11 +12,12 @@ export function derive<From, IntoR extends Effect>(
       return () => {
         return U.thenOk(
           U.then(env.resolve(from), wrapThrows(into, this)),
-          (e) => env.init(e)(),
+          (e) => env.symbol(e).bound(),
         );
       };
     },
     items: [from, into],
+    memoize: false,
   });
 }
 

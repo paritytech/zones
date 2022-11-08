@@ -7,5 +7,6 @@ export function lift<V>(value: V): Effect<T<V>, E<V>> {
     kind: "Lift",
     impl: (env_) => () => value === env ? env_ : value,
     items: [value],
+    memoize: true,
   });
 }
