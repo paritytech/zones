@@ -157,7 +157,7 @@ export type T<U> = U extends Effect<infer T> ? T
 /** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
 
-// Re-aliased for use within `Effect` class def without name conflict
+// Aliased for use within `Effect` class def without name conflict
 type T_<U> = T<U>;
 type E_<U> = E<U>;
 
