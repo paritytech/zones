@@ -32,19 +32,17 @@ export interface Symbol {
 export class Env {
   symbols: Record<string, Symbol> = {};
   states: Record<string, Map<new() => unknown, unknown>> = {};
-  round = 0;
 
   constructor(readonly props?: EnvProps) {}
 
   /** Retrieving the symbol corresponding to a given effect */
   symbol = (src: Effect): Symbol => {
-    const id = src.id(this.round);
-    if (!this.symbols[id]) {
+    if (!this.symbols[src.id]) {
       this.props?.hooks?.beforeInit?.apply(this);
       visitEffect(src, (current) => {
-        if (!this.symbols[id]) {
+        if (!this.symbols[current.id]) {
           const runner = current.impl(this);
-          this.symbols[id] = {
+          this.symbols[current.id] = {
             src: current,
             bound: current.memoize === undefined || current.memoize
               ? U.memo(runner)
@@ -55,7 +53,7 @@ export class Env {
       });
       this.props?.hooks?.afterInit?.apply(this);
     }
-    return this.symbols[id]!;
+    return this.symbols[src.id]!;
   };
 
   /** Define or access state, unique to the specified key and constructor */

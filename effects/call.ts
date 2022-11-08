@@ -21,11 +21,14 @@ export namespace call {
    * TODO(@tjjfvi): a factory for generic call factories
    * ... how is this going to look?
    */
-  export function fac<A extends unknown[], R>(fn: (...args: A) => R) {
+  export function fac<A extends unknown[], R>(
+    fn: (...args: A) => R,
+    key: PropertyKey,
+  ) {
     const fnWrapped = (a: A) => fn(...a);
     return <X extends Ls$<A>>(...args: X) => {
       const args_ = ls(...args);
-      return args_.next(fnWrapped as (args: T<typeof args_>) => R);
+      return args_.next(fnWrapped as (args: T<typeof args_>) => R, key);
     };
   }
 }

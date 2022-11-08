@@ -1,5 +1,5 @@
 import { Effect } from "../Effect.ts";
-import { Env, env } from "../Env.ts";
+import { env } from "../Env.ts";
 import * as U from "../util/mod.ts";
 
 let i = 0;
@@ -28,11 +28,11 @@ export function unknownId(value: unknown) {
   });
 }
 
-export function id(target: unknown, envRound?: number): string {
+export function id(target: unknown): string {
   switch (typeof target) {
     case "function": {
       if (target === env) {
-        return `env(${envRound || ""})`;
+        return `env()`;
       } else if (!target.name) {
         return refId(target as (...args: any[]) => any);
       }
@@ -40,7 +40,7 @@ export function id(target: unknown, envRound?: number): string {
     }
     case "object": {
       if (target instanceof Effect) {
-        return target.id(envRound);
+        return target.id;
       } else if (target === null) {
         return "null";
       }

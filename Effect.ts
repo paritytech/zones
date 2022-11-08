@@ -41,18 +41,15 @@ export class Effect<T = any, E extends Error = Error>
   readonly memoize;
   readonly items;
 
+  /** An id encapsulates any child/argument ids */
+  readonly id;
+
   constructor({ kind, impl, memoize, items }: EffectProps<T, E>) {
     this.kind = kind;
     this.impl = impl;
     this.memoize = memoize;
     this.items = items;
-  }
-
-  /** Compute an id, which encapsulates any child/argument ids */
-  id(envRound?: number) {
-    return `${this.kind}(${
-      this.items?.map((item) => U.id(item, envRound)).join(",") || ""
-    })`;
+    this.id = `${kind}(${this.items?.map(U.id).join(",") || ""})`;
   }
 
   [U.denoCustomInspect] = U.denoCustomInspectDelegate;
@@ -79,6 +76,7 @@ export class Effect<T = any, E extends Error = Error>
   /** Create an effect which resolves to the result of `logic`, called with the resolved (this) effect */
   next<R>(
     logic: (depResolved: T) => R,
+    key?: PropertyKey,
   ): Effect<Exclude<Awaited<R>, Error>, E | Extract<Awaited<R>, Error>> {
     const self = this;
     return new Effect({
@@ -91,7 +89,7 @@ export class Effect<T = any, E extends Error = Error>
           );
         };
       },
-      items: [self, logic],
+      items: [self, key ?? logic],
       memoize: true,
     });
   }
@@ -218,7 +216,7 @@ function inspectEffect(
   const lookup: Record<string, [i: number, source: Effect]> = {};
   const segments: InspectEffectSegment[] = [];
   visitEffect(this, (current) => {
-    const id = current.id(0);
+    const id = current.id;
     if (lookup[id]) return;
     lookup[id] = [i++, current];
     return visitEffect.proceed;
@@ -231,7 +229,7 @@ function inspectEffect(
       ...zone && { zone },
       ...items?.length && {
         items: items.map((arg) => {
-          return arg instanceof Effect ? new Ref(lookup[arg.id(0)]![0]) : arg;
+          return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
         }),
       },
     });
