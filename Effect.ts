@@ -1,4 +1,5 @@
-import { Env } from "./Env.ts";
+import { Env, EnvFactory } from "./Env.ts";
+import { wrapThrows } from "./Error.ts";
 import * as U from "./util/mod.ts";
 
 const effect_ = Symbol();
@@ -19,11 +20,11 @@ export interface EffectProps<T, E extends Error> {
   /** A human-readable name for this type of effect */
   readonly kind: string;
   /** The effect-specific runtime behavior */
-  readonly init: EffectInit;
+  readonly impl: EffectImpl;
   /** If false, the effect will be recomputed for each unique references */
-  readonly memoize?: boolean;
-  /** Any arguments (such as child effects) used in the construction this effect */
-  readonly args?: unknown[];
+  readonly memoize: boolean;
+  /** Any values (potentially child effects) which contribute to the effect's id */
+  readonly items?: unknown[];
 }
 
 /** A typed representation of some computation */
@@ -35,20 +36,20 @@ export class Effect<T = any, E extends Error = Error>
   /** If defined, `zone` may indicate a serialization boundary */
   declare zone?: string;
 
-  /** An id, which encapsulates any child/argument ids */
-  readonly id: string;
-
   readonly kind;
-  readonly init;
+  readonly impl;
   readonly memoize;
-  readonly args;
+  readonly items;
 
-  constructor({ kind, init, memoize, args }: EffectProps<T, E>) {
-    this.id = `${kind}(${args?.map(U.id).join(",") || ""})`;
+  /** An id, which encapsulates any child effect and argument ids */
+  readonly id;
+
+  constructor({ kind, impl, memoize, items }: EffectProps<T, E>) {
     this.kind = kind;
-    this.init = init;
+    this.impl = impl;
     this.memoize = memoize;
-    this.args = args;
+    this.items = items;
+    this.id = `${kind}(${this.items?.map(U.id).join(",") || ""})`;
   }
 
   [U.denoCustomInspect] = U.denoCustomInspectDelegate;
@@ -57,7 +58,7 @@ export class Effect<T = any, E extends Error = Error>
 
   /** Produce a run fn bound to a specific env */
   bind: EffectBind<T, E> = (env) => {
-    return env.init(this) as any;
+    return env.entry(this).bound as any;
   };
 
   /** Execute the current effect with either an anonymous (temporary) env */
@@ -72,21 +73,57 @@ export class Effect<T = any, E extends Error = Error>
     return clone;
   };
 
+  /** Create an effect which resolves to the result of `logic`, called with the resolved (this) effect */
+  next<R>(
+    logic: (depResolved: T) => R,
+    key?: PropertyKey,
+  ): Effect<Exclude<Awaited<R>, Error>, E | Extract<Awaited<R>, Error>> {
+    const self = this;
+    return new Effect({
+      kind: "Next",
+      impl(env) {
+        return () => {
+          return U.thenOk(
+            env.resolve(self),
+            wrapThrows((depResolved) => logic(depResolved as T), this),
+          );
+        };
+      },
+      items: [self, key ?? logic],
+      memoize: true,
+    });
+  }
+
+  /** Create an effect which executes the current and another specified (maybe) effect in sequence */
+  nextE<U>(next: U): Effect<T | T_<U>, E | E_<U>> {
+    const self = this;
+    return new Effect({
+      kind: "NextE",
+      impl(env) {
+        return () => {
+          return U.thenOk(env.resolve(self), () => env.resolve(next));
+        };
+      },
+      items: [self, next],
+      memoize: true,
+    });
+  }
+
   /** Utility method to create a new effect that runs the current effect and indexes into its result */
   access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, T_<K>>], E> {
     const self = this;
     return new Effect({
       kind: "Access",
-      init(env) {
+      impl(env) {
         return () => {
           return U.thenOk(
-            U.all(env.getRunner(self)(), env.resolve(key)),
+            U.all(env.entry(self).bound(), env.resolve(key)),
             ([self, key]) => self[key],
           );
         };
       },
+      items: [self, key],
       memoize: true,
-      args: [self, key],
     });
   }
 
@@ -95,7 +132,7 @@ export class Effect<T = any, E extends Error = Error>
     const self = this;
     return new Effect({
       kind: "Wrap",
-      init(env) {
+      impl(env) {
         return U.memo(() => {
           return U.thenOk(
             U.all(env.resolve(self), env.resolve(key)),
@@ -103,7 +140,8 @@ export class Effect<T = any, E extends Error = Error>
           );
         });
       },
-      args: [self, key],
+      items: [self, key],
+      memoize: true,
     });
   }
 
@@ -119,8 +157,8 @@ export class Effect<T = any, E extends Error = Error>
 }
 
 /** The effect-specific runtime behavior */
-export type EffectInit = (this: Effect, env: Env) => EffectInitRunner;
-export type EffectInitRunner = () => unknown;
+export type EffectImpl = (this: Effect, env: Env) => EffectImplBound;
+export type EffectImplBound = () => unknown;
 
 /** Produce a run fn, bound to the specified env */
 export type EffectBind<T, E extends Error = Error> = (
@@ -131,11 +169,16 @@ export type EffectBind<T, E extends Error = Error> = (
 export type EffectRun<T, E extends Error> = () => Promise<T | E>;
 
 /** Extract the resolved value type of an effect */
-export type T<U> = U extends Effect<infer T> ? T : Exclude<Awaited<U>, Error>;
-// Re-aliased for use within `Effect` class def without name conflict
-type T_<U> = T<U>;
+export type T<U> = U extends Effect<infer T> ? T
+  : U extends EnvFactory ? Env
+  : Exclude<Awaited<U>, Error>;
 /** Extract the rejected error type of an effect */
 export type E<U> = U extends Effect<any, infer E> ? E : never;
+
+// Aliased for use within `Effect` class def without name conflict
+type T_<U> = T<U>;
+type E_<U> = E<U>;
+
 /** Produces a union of `T` with a widened effect that resolves to `T` */
 export type $<T> = T | Effect<T>;
 
@@ -151,8 +194,8 @@ export function visitEffect(
   const stack = [root];
   while (stack.length) {
     const current = stack.pop()!;
-    if (visit(current) === visitEffect.proceed && current.args) {
-      for (const arg of current.args) {
+    if (visit(current) === visitEffect.proceed && current.items) {
+      for (const arg of current.items) {
         arg instanceof Effect && stack.push(arg);
       }
     }
@@ -165,23 +208,27 @@ export namespace visitEffect {
 }
 
 // TODO: inline segments referenced once
-function inspectEffect(this: Effect, inspect: U.Inspect): string {
+function inspectEffect(
+  this: Effect,
+  inspect: U.Inspect,
+): string {
   let i = 0;
   const lookup: Record<string, [i: number, source: Effect]> = {};
   const segments: InspectEffectSegment[] = [];
   visitEffect(this, (current) => {
-    if (lookup[current.id]) return;
-    lookup[current.id] = [i++, current];
+    const id = current.id;
+    if (lookup[id]) return;
+    lookup[id] = [i++, current];
     return visitEffect.proceed;
   });
   for (const id in lookup) {
-    const [i, { kind, zone, args }] = lookup[id]!;
+    const [i, { kind, zone, items }] = lookup[id]!;
     segments.push({
       i,
       kind,
       ...zone && { zone },
-      ...args?.length && {
-        args: args.map((arg) => {
+      ...items?.length && {
+        items: items.map((arg) => {
           return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
         }),
       },
@@ -193,7 +240,7 @@ interface InspectEffectSegment {
   i: number;
   kind: string;
   zone?: string;
-  args?: unknown[];
+  items?: unknown[];
 }
 // TODO: should this include custom inspection as well?
 class Ref {

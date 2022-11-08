@@ -31,7 +31,7 @@ class InnerClient {
 }
 
 function client<Url extends Z.$<string>>(url: Url) {
-  return Z.call(url, function clientImpl(url) {
+  return Z.lift(url).next(function clientImpl(url) {
     console.log("ENTER CLIENT");
     if (false as boolean) {
       return new ClientConnectError();
@@ -49,8 +49,7 @@ function call<
   method: Method,
   args: Args,
 ) {
-  return Z.call(
-    Z.rc(client, method, ...args),
+  return Z.rc(client, method, ...args).next(
     async ([[client, method, ...args], counter]) => {
       console.log("ENTER CALL");
       const result = await client.send(method, args);

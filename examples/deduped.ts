@@ -2,14 +2,14 @@ import * as Z from "../mod.ts";
 
 let dupI = 0;
 function dup() {
-  return Z.call(0, () => {
+  return Z.call(() => {
     return `${dupI++}`;
   });
 }
 
 let dedupedI = 0;
 function deduped() {
-  return Z.call(0, function dedupedImpl() {
+  return Z.call(function dedupedImpl() {
     return `${dedupedI++}`;
   });
 }

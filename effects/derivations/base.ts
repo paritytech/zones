@@ -8,15 +8,16 @@ export function derive<From, IntoR extends Effect>(
 ): Effect<T<IntoR>, E<From | IntoR>> {
   return new Effect({
     kind: "Derive",
-    init(env) {
+    impl(env) {
       return () => {
         return U.thenOk(
           U.then(env.resolve(from), wrapThrows(into, this)),
-          (e) => env.init(e)(),
+          (e) => env.entry(e).bound(),
         );
       };
     },
-    args: [from, into],
+    items: [from, into],
+    memoize: false,
   });
 }
 

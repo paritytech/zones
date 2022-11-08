@@ -1,4 +1,5 @@
 import { Effect } from "../Effect.ts";
+import { env } from "../Env.ts";
 import * as U from "../util/mod.ts";
 
 let i = 0;
@@ -30,7 +31,9 @@ export function unknownId(value: unknown) {
 export function id(target: unknown): string {
   switch (typeof target) {
     case "function": {
-      if (!target.name) {
+      if (target === env) {
+        return `env()`;
+      } else if (!target.name) {
         return refId(target as (...args: any[]) => any);
       }
       return `fn(${target.name})`;

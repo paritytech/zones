@@ -1,6 +1,6 @@
 import * as Z from "../mod.ts";
 
-const untypedError = Z.call(0, () => {
+const untypedError = Z.call(() => {
   if (true as boolean) {
     throw new Error();
   }

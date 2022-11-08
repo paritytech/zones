@@ -1,6 +1,6 @@
 import * as Z from "../mod.ts";
 
-const a = Z.call(undefined!, () => {
+const a = Z.call(() => {
   if (true as boolean) {
     return new EA();
   }
@@ -12,7 +12,7 @@ class EA extends Error {
 
 const aResult = a.run();
 
-const b = Z.call(undefined!, () => {
+const b = Z.call(() => {
   if (true as boolean) {
     return new EB();
   }
