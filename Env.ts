@@ -22,7 +22,7 @@ export interface EnvFactory {
   (props?: EnvProps): Env;
 }
 
-export interface Symbol {
+export interface EnvEntry {
   src: Effect;
   bound: EffectImplBound;
 }
@@ -30,18 +30,18 @@ export interface Symbol {
 // TODO: LRU-ify
 /** The container for past runs, ids and other state */
 export class Env {
-  symbols: Record<string, Symbol> = {};
+  entries: Record<string, EnvEntry> = {};
   states: Record<string, Map<new() => unknown, unknown>> = {};
 
   constructor(readonly props?: EnvProps) {}
 
-  /** Retrieving the symbol corresponding to a given effect */
-  symbol = (src: Effect): Symbol => {
-    if (!this.symbols[src.id]) {
+  /** Retrieving the entry corresponding to a given effect */
+  entry = (src: Effect): EnvEntry => {
+    if (!this.entries[src.id]) {
       this.props?.hooks?.beforeInit?.apply(this);
       visitEffect(src, (current) => {
-        if (!this.symbols[current.id]) {
-          this.symbols[current.id] = {
+        if (!this.entries[current.id]) {
+          this.entries[current.id] = {
             src: current,
             bound: (current.memoize === undefined || current.memoize
               ? U.memo
@@ -52,7 +52,7 @@ export class Env {
       });
       this.props?.hooks?.afterInit?.apply(this);
     }
-    return this.symbols[src.id]!;
+    return this.entries[src.id]!;
   };
 
   /** Define or access state, unique to the specified key and constructor */
@@ -68,7 +68,7 @@ export class Env {
   /** Return the value of––if it is an effect––its resolution */
   resolve = (value: unknown) => {
     return value instanceof Effect
-      ? this.symbol(value).bound()
+      ? this.entry(value).bound()
       : value === env
       ? this
       : value;

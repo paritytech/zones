@@ -58,7 +58,7 @@ export class Effect<T = any, E extends Error = Error>
 
   /** Produce a run fn bound to a specific env */
   bind: EffectBind<T, E> = (env) => {
-    return env.symbol(this).bound as any;
+    return env.entry(this).bound as any;
   };
 
   /** Execute the current effect with either an anonymous (temporary) env */
@@ -117,7 +117,7 @@ export class Effect<T = any, E extends Error = Error>
       impl(env) {
         return () => {
           return U.thenOk(
-            U.all(env.symbol(self).bound(), env.resolve(key)),
+            U.all(env.entry(self).bound(), env.resolve(key)),
             ([self, key]) => self[key],
           );
         };

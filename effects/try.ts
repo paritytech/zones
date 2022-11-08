@@ -17,7 +17,7 @@ function try_<
     impl(env) {
       // TODO: get this working properly
       return () => {
-        return U.thenErr(env.symbol(attempt).bound(), fallback);
+        return U.thenErr(env.entry(attempt).bound(), fallback);
       };
     },
     items: [attempt, fallback],
