@@ -4,7 +4,8 @@
   "lineWidth": 80,
   "typescript": {
     "quoteProps": "asNeeded",
-    "arrowFunction.useParentheses": "force"
+    "arrowFunction.useParentheses": "force",
+    "semiColons": "asi"
   },
   "includes": ["**.{json,md,ts}"],
   "excludes": ["target"],

@@ -15,3 +15,4 @@ xsync
 deduped
 nullary
 impls
+ifying

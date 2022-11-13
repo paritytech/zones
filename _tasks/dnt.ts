@@ -1,9 +1,9 @@
-import { build } from "../deps/dnt.ts";
-import * as fs from "../deps/std/fs.ts";
-import { fail } from "../deps/std/testing/asserts.ts";
+import { build } from "../deps/dnt.ts"
+import * as fs from "../deps/std/fs.ts"
+import { fail } from "../deps/std/testing/asserts.ts"
 
-const OUT_DIR = "target/npm";
-await fs.emptyDir(OUT_DIR);
+const OUT_DIR = "target/npm"
+await fs.emptyDir(OUT_DIR)
 
 await Promise.all([
   build({
@@ -34,4 +34,4 @@ await Promise.all([
   }),
   fs.copy("LICENSE", `${OUT_DIR}/LICENSE`),
   fs.copy("Readme.md", `${OUT_DIR}/Readme.md`),
-]);
+])

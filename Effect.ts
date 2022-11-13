@@ -1,248 +1,181 @@
-import { Env, EnvFactory } from "./Env.ts";
-import { wrapThrows } from "./Error.ts";
-import * as U from "./util/mod.ts";
+import { Env } from "./Env.ts"
+import { ls, LsT } from "./std/Ls.ts"
+import { isNone, map, mapOk, Nullish } from "./util/mod.ts"
+import { AssertKeyof, collect, ResultE, ResultT } from "./util/mod.ts"
 
-const effect_ = Symbol();
-
-declare const T_: unique symbol;
-declare const E_: unique symbol;
-
-interface EffectPhantoms<T, E extends Error> {
-  /** The ok result type */
-  readonly [T_]: T;
-  /** The error result type */
-  readonly [E_]: E;
-}
-
-/** Props required by the `effect` factory */
 export interface EffectProps<T, E extends Error> {
-  readonly [effect_]?: EffectPhantoms<T, E>;
-  /** A human-readable name for this type of effect */
-  readonly kind: string;
-  /** The effect-specific runtime behavior */
-  readonly impl: EffectImpl;
-  /** If false, the effect will be recomputed for each unique references */
-  readonly memoize: boolean;
-  /** Any values (potentially child effects) which contribute to the effect's id */
-  readonly items?: unknown[];
+  readonly [Effect_]?: EffectPhantoms<T, E>
+
+  readonly kind: string
+  readonly items?: unknown[]
+  readonly impl: EffectImpl
 }
 
-/** A typed representation of some computation */
 export class Effect<T = any, E extends Error = Error>
-  implements EffectProps<T, E>, U.CustomInspects
+  implements EffectProps<T, E>
 {
-  declare [effect_]?: EffectPhantoms<T, E>;
+  declare readonly [Effect_]?: EffectPhantoms<T, E>
 
-  /** If defined, `zone` may indicate a serialization boundary */
-  declare zone?: string;
+  readonly kind
+  readonly impl
+  readonly items
+  readonly id
 
-  readonly kind;
-  readonly impl;
-  readonly memoize;
-  readonly items;
-
-  /** An id, which encapsulates any child effect and argument ids */
-  readonly id;
-
-  constructor({ kind, impl, memoize, items }: EffectProps<T, E>) {
-    this.kind = kind;
-    this.impl = impl;
-    this.memoize = memoize;
-    this.items = items;
-    this.id = `${kind}(${this.items?.map(U.id).join(",") || ""})`;
+  constructor({ kind, items, impl }: EffectProps<T, E>) {
+    this.kind = kind
+    this.impl = impl
+    this.items = items
+    this.id = "TODO"
   }
 
-  [U.denoCustomInspect] = U.denoCustomInspectDelegate;
-  [U.nodeCustomInspect] = U.nodeCustomInspectDelegate;
-  inspect = inspectEffect;
-
-  /** Produce a run fn bound to a specific env */
   bind: EffectBind<T, E> = (env) => {
-    return env.entry(this).bound as any;
-  };
-
-  /** Execute the current effect with either an anonymous (temporary) env */
-  run: EffectRun<T, E> = () => {
-    return this.bind(new Env())();
-  };
-
-  /** Produce a new effect with the specified zone name */
-  zoned = (name: string): Effect<T, E> => {
-    const clone = new Effect(this);
-    clone.zone = name;
-    return clone;
-  };
-
-  /** Create an effect which resolves to the result of `logic`, called with the resolved (this) effect */
-  next<R>(
-    logic: (depResolved: T) => R,
-    key?: PropertyKey,
-  ): Effect<Exclude<Awaited<R>, Error>, E | Extract<Awaited<R>, Error>> {
-    const self = this;
-    return new Effect({
-      kind: "Next",
-      impl(env) {
-        return () => {
-          return U.thenOk(
-            env.resolve(self),
-            wrapThrows((depResolved) => logic(depResolved as T), this),
-          );
-        };
-      },
-      items: [self, key ?? logic],
-      memoize: true,
-    });
+    return () => this.impl(env)()
   }
 
-  /** Create an effect which executes the current and another specified (maybe) effect in sequence */
-  nextE<U>(next: U): Effect<T | T_<U>, E | E_<U>> {
-    const self = this;
-    return new Effect({
-      kind: "NextE",
-      impl(env) {
-        return () => {
-          return U.thenOk(env.resolve(self), () => env.resolve(next));
-        };
-      },
-      items: [self, next],
-      memoize: true,
-    });
+  ok(this: HasOk<T, this>): Effect<T, never> {
+    return this.#map("AssertOk", (thisResult) => {
+      if (thisResult instanceof Error) {
+        throw thisResult
+      }
+      return thisResult
+    }) as any
   }
 
-  /** Utility method to create a new effect that runs the current effect and indexes into its result */
-  access<K extends $<keyof T>>(key: K): Effect<T[U.AssertKeyof<T, T_<K>>], E> {
-    const self = this;
-    return new Effect({
-      kind: "Access",
-      impl(env) {
-        return () => {
-          return U.thenOk(
-            U.all(env.entry(self).bound(), env.resolve(key)),
-            ([self, key]) => self[key],
-          );
-        };
-      },
-      items: [self, key],
-      memoize: true,
-    });
+  mapOk<R>(
+    this: HasOk<T, this>,
+    cb: (value: T) => R,
+  ): Effect<ResultT<R>, E | ResultE<R>> {
+    return this.#map("MapOk", (thisResult) => {
+      return thisResult instanceof Error ? thisResult : cb(thisResult) as any
+    })
   }
 
-  /** Wrap the result of this effect in an object of the specified key */
-  wrap<K extends $<PropertyKey>>(key: K): Effect<{ [_ in T_<K>]: T_<T> }, E> {
-    const self = this;
-    return new Effect({
-      kind: "Wrap",
-      impl(env) {
-        return U.memo(() => {
-          return U.thenOk(
-            U.all(env.resolve(self), env.resolve(key)),
-            ([self, key]) => ({ [key]: self }),
-          );
-        });
-      },
-      items: [self, key],
-      memoize: true,
-    });
+  mapError<R>(
+    this: HasError<E, this>,
+    cb: (value: E) => R,
+  ): Effect<T | ResultT<R>, ResultE<R>> {
+    return this.#map("MapError", (thisResult) => {
+      return thisResult instanceof Error ? cb(thisResult) : thisResult as any
+    })
   }
 
-  /** Override `T` */
-  as<U extends T>(): Effect<U, E> {
-    return this as any;
+  mapSome<R>(
+    this: HasSome<T, this>,
+    cb: (value: NonNullable<T>) => R,
+  ): Effect<NonNullable<T> | R, E> {
+    return this.#map("MapSome", (thisResult) => {
+      return isNone(thisResult)
+        ? thisResult as any
+        : cb(thisResult as NonNullable<T>)
+    })
   }
 
-  /** Exclude members of `E` */
-  excludeErr<S extends E>(): Effect<T, Exclude<E, S>> {
-    return this as any;
+  mapNone<R>(
+    this: HasNone<T, this>,
+    cb: () => R,
+  ): Effect<T | ResultT<R>, E | ResultE<R>> {
+    return this.#map("MapNone", (thisResult) => {
+      return isNone(thisResult) ? cb() as any : thisResult
+    })
+  }
+
+  #map<R>(
+    kind: string,
+    cb: (thisResult: T | E) => R,
+  ): Effect<ResultT<R>, ResultE<R>> {
+    return Effect.from(kind, (env) => {
+      const runThis = this.impl(env)
+      return () => map(runThis(), cb)
+    }, [this])
+  }
+
+  access<K extends Item<keyof T>>(key: K): Effect<T[AssertKeyof<T, T_<K>>], E> {
+    return Effect.from("Access", (env) => {
+      const runThis = this.impl(env)
+      const runKey = Effect.lift(key).impl(env)
+      return () =>
+        mapOk(collect(runThis(), runKey()), ([rThis, rKey]) => rThis[rKey])
+    }, [this])
+  }
+
+  rc<Keys extends [unknown, ...unknown[]]>(...keys: Keys): Effect<
+    [count: number, target: T, ...keys: LsT<Keys>],
+    E | E_<Keys[number]>
+  > {
+    return Effect.from("Rc", (env) => {
+      const runSelf = this.impl(env)
+      const runKeys = ls(...keys).impl(env)
+      const counter = env.state(this.id, RcCounter)
+      counter.i++
+      return () => {
+        return mapOk(collect(runSelf(), ...runKeys()), (rCollected) => {
+          return [counter.i--, ...rCollected]
+        })
+      }
+    })
+  }
+
+  static from<T, E extends Error>(
+    kind: string,
+    impl: EffectImpl,
+    ...items: unknown[]
+  ): Effect<T, E> {
+    return new this({ kind, impl, items })
+  }
+
+  static lift<I>(item: I): Effect<T_<I>, E_<I>> {
+    return (item instanceof Effect
+      ? item
+      : this.from("Lift", () => () => item)) as Effect<T_<I>, E_<I>>
   }
 }
 
-/** The effect-specific runtime behavior */
-export type EffectImpl = (this: Effect, env: Env) => EffectImplBound;
-export type EffectImplBound = () => unknown;
+declare const Effect_: unique symbol
+interface EffectPhantoms<T, E extends Error> {
+  [T_]: T
+  [E_]: E
+}
+declare const T_: unique symbol
+declare const E_: unique symbol
 
-/** Produce a run fn, bound to the specified env */
-export type EffectBind<T, E extends Error = Error> = (
-  env: Env,
-) => EffectRun<T, E>;
+export type EffectImpl = (this: Effect, env: Env) => () => any
 
-/** The method with which one executes an effect */
-export type EffectRun<T, E extends Error> = () => Promise<T | E>;
-
-/** Extract the resolved value type of an effect */
-export type T<U> = U extends Effect<infer T> ? T
-  : U extends EnvFactory ? Env
-  : Exclude<Awaited<U>, Error>;
-/** Extract the rejected error type of an effect */
-export type E<U> = U extends Effect<any, infer E> ? E : never;
-
-// Aliased for use within `Effect` class def without name conflict
-type T_<U> = T<U>;
-type E_<U> = E<U>;
-
-/** Produces a union of `T` with a widened effect that resolves to `T` */
-export type $<T> = T | Effect<T>;
+export type EffectBind<T, E extends Error> = (env: Env) => EffectRun<T, E>
+export type EffectRun<T, E extends Error> = () => Promise<T | E>
 
 /**
- * Visit the unique nodes of the effect tree
- * @param root the root of the visitation target tree
- * @param visit the visitor fn, which should return `visitEffect.proceed` in order to proceed with subsequent visitations
+ * TODO: do we want to produce an error message with some TS hackery? Downside, referencing `this`
+ * within methods will require `as`-ifying (overcoming fake unions with `ContextError`).
+ *
+ * ```ts
+ * declare const ContextError_: unique symbol
+ * declare class ContextError<Message extends string> {
+ *   [ContextError_]: Message
+ * }
+ * type ContextErrorMessage<Target extends string> =
+ *   `Cannot map the "${Target}" of an effect whose type lacks a corresponding "${Target}" signature`
+ * ```
+ *
+ * ```ts
+ * ContextError<ContextErrorMessage<"ok">>
+ * ```
  */
-export function visitEffect(
-  root: Effect,
-  visit: (current: Effect) => undefined | typeof visitEffect.proceed,
-) {
-  const stack = [root];
-  while (stack.length) {
-    const current = stack.pop()!;
-    if (visit(current) === visitEffect.proceed && current.items) {
-      for (const arg of current.items) {
-        arg instanceof Effect && stack.push(arg);
-      }
-    }
-  }
-}
-/** Cues for effect visitation */
-export namespace visitEffect {
-  /** Value to return from within a `visitEffect` visitor to continue visitation */
-  export const proceed = Symbol();
-}
 
-// TODO: inline segments referenced once
-function inspectEffect(
-  this: Effect,
-  inspect: U.Inspect,
-): string {
-  let i = 0;
-  const lookup: Record<string, [i: number, source: Effect]> = {};
-  const segments: InspectEffectSegment[] = [];
-  visitEffect(this, (current) => {
-    const id = current.id;
-    if (lookup[id]) return;
-    lookup[id] = [i++, current];
-    return visitEffect.proceed;
-  });
-  for (const id in lookup) {
-    const [i, { kind, zone, items }] = lookup[id]!;
-    segments.push({
-      i,
-      kind,
-      ...zone && { zone },
-      ...items?.length && {
-        items: items.map((arg) => {
-          return arg instanceof Effect ? new Ref(lookup[arg.id]![0]) : arg;
-        }),
-      },
-    });
-  }
-  return inspect(segments);
-}
-interface InspectEffectSegment {
-  i: number;
-  kind: string;
-  zone?: string;
-  items?: unknown[];
-}
-// TODO: should this include custom inspection as well?
-class Ref {
-  constructor(readonly to: number) {}
-}
+type HasOk<T, This> = [T] extends [never] ? never : This
+type HasError<E, This> = [E] extends [never] ? never : This
+type HasSome<T, This> = [NonNullable<T>] extends [never] ? never : This
+type HasNone<T, This> = [Extract<T, Nullish>] extends [never] ? never : This
+type HasLs<T, This> = [Extract<T, any[]>] extends [never] ? never : This
+
+export type T<I> = I extends Effect<infer T> ? T
+  : I extends typeof Env ? Env
+  : ResultT<I>
+export type E<I> = I extends Effect<any, infer E> ? E : ResultE<I>
+
+type T_<I> = T<I>
+type E_<I> = E<I>
+
+export type Item<T> = T | Effect<T>
+
+// @dprint-ignore-next-line
+class RcCounter { i = 0 }

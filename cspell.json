@@ -11,4 +11,3 @@
   "dictionaries": ["project-words"],
   "ignorePaths": ["deno.lock", "target"]
 }
-
