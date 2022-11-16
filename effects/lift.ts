@@ -7,6 +7,7 @@ export function lift<V>(value: V): Effect<T<V>, E<V>> {
     kind: "Lift",
     impl: (env_) => {
       return () => {
+        // @ts-ignore dnt error TS2367: This condition will always return 'false' since the types 'V' and 'EnvFactory' have no overlap.
         return value === env ? env_ : value;
       };
     },

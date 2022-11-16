@@ -31,7 +31,12 @@ export type Inspect = (value: unknown) => string;
 export type RuntimeAgnosticCustomInspect = (inspect: Inspect) => string;
 export type DenoCustomInspect = (
   this: CustomInspects,
-  inspect: (value: unknown, opts: Deno.InspectOptions) => string,
+  inspect: (
+    value: unknown,
+    // @ts-ignore dnt error TS2694: Namespace '"target/npm/node_modules/@deno/shim-deno-test/dist/test"' has no exported member 'InspectOptions'
+    opts: Deno.InspectOptions,
+  ) => string,
+  // @ts-ignore dnt error TS2694: Namespace '"target/npm/node_modules/@deno/shim-deno-test/dist/test"' has no exported member 'InspectOptions'
   opts: Deno.InspectOptions,
 ) => string;
 export type NodeCustomInspect = (
