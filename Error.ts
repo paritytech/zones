@@ -10,6 +10,7 @@ export class ZonesError extends Error {
     "An untyped throw occurred within an effect-specific implementation";
   override readonly name = `ZonesError`;
   constructor(readonly source: Effect, thrown: unknown) {
+    // @ts-ignore dnt error TS2322: Type 'unknown' is not assignable to type 'Error | undefined'.
     super(ZonesError.MESSAGE, { cause: thrown });
   }
 }
